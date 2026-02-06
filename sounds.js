@@ -240,6 +240,62 @@ class SoundManager {
         oscillator.stop(now + 0.1);
     }
 
+    playBump() {
+        if (!this.enabled || !this.sfxEnabled || !this.audioContext) return;
+
+        const now = this.audioContext.currentTime;
+        const oscillator = this.audioContext.createOscillator();
+        const gainNode = this.audioContext.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(this.audioContext.destination);
+
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(120, now);
+        oscillator.frequency.exponentialRampToValueAtTime(60, now + 0.1);
+
+        gainNode.gain.setValueAtTime(this.sfxVolume * this.masterVolume * 0.25, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+
+        oscillator.start(now);
+        oscillator.stop(now + 0.1);
+    }
+
+    playImpact() {
+        if (!this.enabled || !this.sfxEnabled || !this.audioContext) return;
+
+        const now = this.audioContext.currentTime;
+
+        // Metallic crunch
+        const bufferSize = this.audioContext.sampleRate * 0.15;
+        const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
+        const output = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            output[i] = (Math.random() - 0.5) * 2;
+        }
+
+        const noise = this.audioContext.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = this.audioContext.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(400, now);
+        filter.frequency.exponentialRampToValueAtTime(150, now + 0.15);
+        filter.Q.value = 5;
+
+        const gainNode = this.audioContext.createGain();
+
+        noise.connect(filter);
+        filter.connect(gainNode);
+        gainNode.connect(this.audioContext.destination);
+
+        gainNode.gain.setValueAtTime(this.sfxVolume * this.masterVolume * 0.4, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+
+        noise.start(now);
+        noise.stop(now + 0.15);
+    }
+
     playPowerUp() {
         if (!this.enabled || !this.sfxEnabled || !this.audioContext) return;
 

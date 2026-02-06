@@ -17,6 +17,8 @@ class Game {
         this.timeSinceEnemiesCleared = 0;
         this.allEnemiesCleared = false;
         this.gameWon = false;
+        this.waitingForRoundStart = false;
+        this.roundStartCallback = null;
 
         // Initialize Three.js
         this.initThreeJS();
@@ -34,6 +36,7 @@ class Game {
         this.blackHoles = [];
         this.lasers = [];
         this.enemyLasers = [];
+        this.debris = [];
 
         // Game bounds - INCREASED SIZE
         this.bounds = {
@@ -50,7 +53,8 @@ class Game {
             right: false,
             up: false,
             down: false,
-            fire: false
+            fire: false,
+            shield: false
         };
 
         // Round configuration
@@ -135,6 +139,23 @@ class Game {
     setupEventListeners() {
         // Keyboard controls
         document.addEventListener('keydown', (e) => {
+            // Enter key to start, restart, or begin next round
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (this.waitingForRoundStart) {
+                    this.dismissRoundTransition();
+                } else {
+                    const startScreen = document.getElementById('start-screen');
+                    const gameOverScreen = document.getElementById('game-over');
+                    if (!startScreen.classList.contains('hidden')) {
+                        document.getElementById('start-btn').click();
+                    } else if (!gameOverScreen.classList.contains('hidden')) {
+                        document.getElementById('restart-btn').click();
+                    }
+                }
+                return;
+            }
+
             switch (e.key.toLowerCase()) {
                 case 'arrowleft':
                 case 'a':
@@ -158,18 +179,7 @@ class Game {
                     break;
                 case 'shift':
                     e.preventDefault();
-                    // Activate shield if available
-                    if (this.player && this.player.hasShieldAvailable) {
-                        const activated = this.powerUpManager.activateShield(this.player);
-                        if (activated) {
-                            this.showPowerUpMessage('SHIELD ACTIVATED');
-                            window.soundManager.playPowerUp();
-                            this.updatePowerUpUI();
-                        }
-                    }
-                    break;
-                case 'p':
-                    this.togglePause();
+                    this.input.shield = true;
                     break;
             }
         });
@@ -194,6 +204,9 @@ class Game {
                     break;
                 case ' ':
                     this.input.fire = false;
+                    break;
+                case 'shift':
+                    this.input.shield = false;
                     break;
             }
         });
@@ -253,7 +266,9 @@ class Game {
             timer: document.getElementById('timer'),
             healthFill: document.getElementById('health-fill'),
             healthText: document.getElementById('health-text'),
-            shieldAvailable: document.getElementById('shield-available'),
+            shieldBarContainer: document.getElementById('shield-bar-container'),
+            shieldFill: document.getElementById('shield-fill'),
+            shieldText: document.getElementById('shield-text'),
             activePowerups: document.getElementById('active-powerups'),
             startScreen: document.getElementById('start-screen'),
             gameOver: document.getElementById('game-over'),
@@ -326,6 +341,7 @@ class Game {
         this.blackHoles.forEach(b => b.destroy());
         this.lasers.forEach(l => l.destroy());
         this.enemyLasers.forEach(l => l.destroy());
+        this.debris.forEach(d => d.destroy());
 
         if (this.player) {
             this.scene.remove(this.player.mesh);
@@ -337,8 +353,109 @@ class Game {
         this.blackHoles = [];
         this.lasers = [];
         this.enemyLasers = [];
+        this.debris = [];
 
         this.powerUpManager.reset();
+    }
+
+    showRoundTransition(roundNumber, config, callback) {
+        const overlay = document.getElementById('round-transition');
+        overlay.classList.remove('hidden');
+        overlay.textContent = '';
+
+        const heading = document.createElement('h2');
+        heading.textContent = `Round ${roundNumber}`;
+        overlay.appendChild(heading);
+
+        const grid = document.createElement('div');
+        grid.className = 'round-items-grid';
+
+        // Only show enemies/hazards for this round, mark new types
+        const items = [
+            { key: 'asteroid', label: 'Asteroids', count: config.asteroidCount, cls: 'icon-asteroid', isNew: false },
+            { key: 'enemy', label: 'Enemies', count: config.enemyCount, cls: 'icon-enemy', isNew: false },
+        ];
+
+        if (config.hugeAsteroidCount > 0) {
+            items.push({ key: 'huge_asteroid', label: 'Huge Asteroid', count: config.hugeAsteroidCount, cls: 'icon-asteroid', isNew: roundNumber === 5 });
+        }
+        if (config.mineCount > 0) {
+            items.push({ key: 'mine', label: 'Mines', count: config.mineCount, cls: 'icon-mine', isNew: roundNumber === 4 });
+        }
+        if (config.blackHoleCount > 0) {
+            items.push({ key: 'blackhole', label: 'Black Holes', count: config.blackHoleCount, cls: 'icon-blackhole', isNew: roundNumber === 7 });
+        }
+
+        // Round 2 is when enemies start shooting
+        if (roundNumber === 2) {
+            items[1].isNew = true;
+            items[1].label = 'Enemies (now shooting!)';
+        }
+
+        items.forEach((item, i) => {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'round-item';
+            if (item.isNew) itemDiv.classList.add('round-item-new');
+            itemDiv.style.animationDelay = `${i * 0.08}s`;
+
+            const iconSpan = document.createElement('span');
+            iconSpan.className = `item-icon ${item.cls}`;
+            // Use 3D preview if available
+            if (this.itemPreviews && this.itemPreviews[item.key]) {
+                const img = document.createElement('img');
+                img.src = this.itemPreviews[item.key];
+                img.alt = item.label;
+                img.style.width = '100%';
+                img.style.height = '100%';
+                iconSpan.appendChild(img);
+            }
+
+            const labelSpan = document.createElement('span');
+            labelSpan.className = 'item-label';
+            labelSpan.textContent = item.label;
+
+            const countSpan = document.createElement('span');
+            countSpan.className = 'item-count';
+            countSpan.textContent = `x${item.count}`;
+
+            itemDiv.appendChild(iconSpan);
+            itemDiv.appendChild(labelSpan);
+            itemDiv.appendChild(countSpan);
+
+            if (item.isNew) {
+                const newTag = document.createElement('span');
+                newTag.className = 'item-new-tag';
+                newTag.textContent = 'NEW!';
+                itemDiv.appendChild(newTag);
+            }
+
+            grid.appendChild(itemDiv);
+        });
+
+        overlay.appendChild(grid);
+
+        // "Press Enter" prompt
+        const prompt = document.createElement('p');
+        prompt.className = 'round-prompt';
+        prompt.textContent = 'Press ENTER to start';
+        overlay.appendChild(prompt);
+
+        // Pause game until player presses Enter
+        this.isPaused = true;
+        this.waitingForRoundStart = true;
+        this.roundStartCallback = callback;
+    }
+
+    dismissRoundTransition() {
+        if (!this.waitingForRoundStart) return;
+        const overlay = document.getElementById('round-transition');
+        overlay.classList.add('hidden');
+        this.isPaused = false;
+        this.waitingForRoundStart = false;
+        if (this.roundStartCallback) {
+            this.roundStartCallback();
+            this.roundStartCallback = null;
+        }
     }
 
     startRound() {
@@ -360,6 +477,30 @@ class Game {
             this.roundConfig.blackHoleCount = Math.floor((this.round - 6) * 0.3) + 1;
         } else {
             this.roundConfig.blackHoleCount = 0;
+        }
+
+        // Huge asteroids from round 5
+        if (this.round >= 5) {
+            this.roundConfig.hugeAsteroidCount = Math.floor((this.round - 4) * 0.5) + 1;
+        } else {
+            this.roundConfig.hugeAsteroidCount = 0;
+        }
+
+        // Show round transition overlay (skip round 1 — player just clicked Start)
+        if (this.round > 1) {
+            this.showRoundTransition(this.round, this.roundConfig);
+        }
+
+        // Spawn huge asteroids (round 5+)
+        for (let i = 0; i < this.roundConfig.hugeAsteroidCount; i++) {
+            const position = new THREE.Vector3(
+                (Math.random() - 0.5) * this.bounds.width,
+                (Math.random() - 0.5) * this.bounds.height,
+                0
+            );
+            if (position.length() > 20) {
+                this.asteroids.push(new Asteroid(position, 'huge', this.scene));
+            }
         }
 
         // Spawn asteroids
@@ -421,10 +562,7 @@ class Game {
     }
 
 
-    togglePause() {
-        if (!this.isRunning || this.gameOver) return;
-        this.isPaused = !this.isPaused;
-    }
+
 
     update(deltaTime) {
         if (!this.isRunning || this.isPaused || this.gameOver) return;
@@ -468,6 +606,18 @@ class Game {
 
         // Update player
         if (this.player) {
+            // Shield: active while holding Shift and reserve > 0
+            if (this.input.shield && this.player.shieldReserve > 0) {
+                this.player.shields = true;
+                this.player.shieldReserve -= deltaTime;
+                if (this.player.shieldReserve <= 0) {
+                    this.player.shieldReserve = 0;
+                    this.player.shields = false;
+                }
+            } else {
+                this.player.shields = false;
+            }
+
             // Handle player update and firing first to get acceleration
             const newLasers = this.player.update(deltaTime, this.input, currentTime);
             if (newLasers) {
@@ -543,7 +693,7 @@ class Game {
                 // Check damage to player
                 const distance = this.mines[i].mesh.position.distanceTo(this.player.mesh.position);
                 if (distance < 10) {
-                    const damage = Math.max(0, 50 - distance * 5);
+                    const damage = Math.max(0, 25 - distance * 2.5);
                     this.damagePlayer(damage);
                 }
 
@@ -584,6 +734,15 @@ class Game {
             }
         }
 
+        // Update debris (visual only, no collisions)
+        for (let i = this.debris.length - 1; i >= 0; i--) {
+            const shouldRemove = this.debris[i].update(deltaTime);
+            if (shouldRemove) {
+                this.debris[i].destroy();
+                this.debris.splice(i, 1);
+            }
+        }
+
         // Update power-ups
         const powerUpEffect = this.powerUpManager.update(deltaTime, this.player, this.bounds);
         if (powerUpEffect) {
@@ -621,18 +780,37 @@ class Game {
                     // Damage asteroid
                     if (this.asteroids[j].takeDamage(this.lasers[i].damage)) {
                         // Asteroid destroyed
-                        this.particleSystem.createExplosion(
-                            this.asteroids[j].mesh.position,
-                            new THREE.Color(0.5, 0.3, 0.2),
-                            30
-                        );
+                        if (this.asteroids[j].size === 'small') {
+                            // Small asteroids shatter into tiny pixel debris
+                            this.particleSystem.createDebris(
+                                this.asteroids[j].mesh.position,
+                                new THREE.Color(0.6, 0.4, 0.2),
+                                25
+                            );
+                        } else if (this.asteroids[j].size === 'huge') {
+                            // Huge asteroids get a massive explosion
+                            this.particleSystem.createExplosion(
+                                this.asteroids[j].mesh.position,
+                                new THREE.Color(0.7, 0.4, 0.1),
+                                80
+                            );
+                        } else {
+                            this.particleSystem.createExplosion(
+                                this.asteroids[j].mesh.position,
+                                new THREE.Color(0.5, 0.3, 0.2),
+                                30
+                            );
+                        }
                         window.soundManager.playExplosion(this.asteroids[j].size);
 
                         // Drop score collectibles based on asteroid size
                         const asteroidPos = this.asteroids[j].mesh.position.clone();
                         let dropCount = 0;
 
-                        if (this.asteroids[j].size === 'large') {
+                        if (this.asteroids[j].size === 'huge') {
+                            // Huge asteroids drop 3-5 collectibles
+                            dropCount = Math.floor(Math.random() * 3) + 3;
+                        } else if (this.asteroids[j].size === 'large') {
                             // Large asteroids drop 1-3 collectibles
                             dropCount = Math.floor(Math.random() * 3) + 1;
                         } else if (this.asteroids[j].size === 'medium') {
@@ -657,7 +835,8 @@ class Game {
                         const fragments = this.asteroids[j].break();
 
                         // Add score based on asteroid size
-                        const asteroidScore = this.asteroids[j].size === 'large' ? 100 :
+                        const asteroidScore = this.asteroids[j].size === 'huge' ? 200 :
+                                            this.asteroids[j].size === 'large' ? 100 :
                                             this.asteroids[j].size === 'medium' ? 75 : 50;
 
                         this.asteroids.splice(j, 1);
@@ -680,7 +859,7 @@ class Game {
                 if (this.physics.checkCollision(this.lasers[i], this.enemies[j])) {
                     // Damage enemy
                     if (this.enemies[j].takeDamage(this.lasers[i].damage)) {
-                        // Enemy destroyed
+                        // Enemy destroyed - break into pieces
                         this.particleSystem.createExplosion(
                             this.enemies[j].mesh.position,
                             new THREE.Color(1, 0.5, 0),
@@ -688,7 +867,8 @@ class Game {
                         );
                         window.soundManager.playExplosion('medium');
 
-                        this.enemies[j].destroy();
+                        const fragments = this.enemies[j].break();
+                        this.debris.push(...fragments);
                         this.enemies.splice(j, 1);
                         this.addScore(200);
                     } else {
@@ -713,19 +893,34 @@ class Game {
             }
         }
 
-        // Player vs asteroids
+        // Player vs asteroids (only large+ asteroids deal damage)
         this.asteroids.forEach(asteroid => {
             if (this.physics.checkCollision(this.player, asteroid)) {
                 this.physics.bounceObjects(this.player, asteroid);
-                this.damagePlayer(20);
+                // Small rock debris at collision point
+                const midpoint = this.player.mesh.position.clone()
+                    .add(asteroid.mesh.position).multiplyScalar(0.5);
+                this.particleSystem.createDebris(midpoint, new THREE.Color(0.7, 0.5, 0.3), 10);
+                if (asteroid.size === 'huge') {
+                    this.damagePlayer(20);
+                } else if (asteroid.size === 'large') {
+                    this.damagePlayer(8);
+                } else {
+                    window.soundManager.playBump();
+                }
             }
         });
 
-        // Player vs enemies
+        // Player vs enemies (1 hit survives, 2 hits kills from full health)
         this.enemies.forEach(enemy => {
             if (this.physics.checkCollision(this.player, enemy)) {
                 this.physics.bounceObjects(this.player, enemy);
-                this.damagePlayer(30);
+                // Impact sparks at collision point
+                const midpoint = this.player.mesh.position.clone()
+                    .add(enemy.mesh.position).multiplyScalar(0.5);
+                this.particleSystem.createExplosion(midpoint, new THREE.Color(1, 0.3, 0.1), 15);
+                window.soundManager.playImpact();
+                this.damagePlayer(25);
             }
         });
 
@@ -733,7 +928,7 @@ class Game {
         this.blackHoles.forEach(blackHole => {
             const distance = this.player.mesh.position.distanceTo(blackHole.mesh.position);
             if (distance < blackHole.radius) {
-                this.damagePlayer(100); // Instant death
+                this.damagePlayer(50); // Black hole
             }
         });
     }
@@ -766,7 +961,7 @@ class Game {
         messageEl.textContent = message;
         messageEl.style.cssText = `
             position: fixed;
-            top: 50%;
+            top: 25%;
             left: 50%;
             transform: translate(-50%, -50%);
             color: #00ff00;
@@ -786,6 +981,14 @@ class Game {
         const healthPercent = (this.player.health / this.player.maxHealth) * 100;
         this.ui.healthFill.style.width = healthPercent + '%';
         this.ui.healthText.textContent = `${Math.ceil(this.player.health)}/${this.player.maxHealth}`;
+
+        // Low health warning border
+        const vignette = document.getElementById('low-health-vignette');
+        if (healthPercent <= 30) {
+            vignette.classList.remove('hidden');
+        } else {
+            vignette.classList.add('hidden');
+        }
 
         // Update ammo display
         this.ui.ammo.textContent = this.player.ammo;
@@ -815,11 +1018,19 @@ class Game {
             this.ui.timer.style.color = '#ff00ff'; // Purple (default)
         }
 
-        // Show/hide shield available indicator
-        if (this.player.hasShieldAvailable) {
-            this.ui.shieldAvailable.classList.remove('hidden');
+        // Show/hide shield bar
+        if (this.player.shieldReserve > 0) {
+            this.ui.shieldBarContainer.classList.remove('hidden');
+            const shieldPercent = (this.player.shieldReserve / this.player.maxShieldReserve) * 100;
+            this.ui.shieldFill.style.width = shieldPercent + '%';
+            this.ui.shieldText.textContent = Math.ceil(this.player.shieldReserve) + 's';
+            if (this.player.shields) {
+                this.ui.shieldFill.classList.add('active');
+            } else {
+                this.ui.shieldFill.classList.remove('active');
+            }
         } else {
-            this.ui.shieldAvailable.classList.add('hidden');
+            this.ui.shieldBarContainer.classList.add('hidden');
         }
     }
 
@@ -855,6 +1066,9 @@ class Game {
         // Show round reached
         this.ui.finalWave.textContent = `Round ${this.round}`;
 
+        // Focus Play Again button
+        document.getElementById('restart-btn').focus();
+
         // Play game over sound and stop music
         window.soundManager.playGameOver();
         window.soundManager.stopMusic();
@@ -889,6 +1103,9 @@ class Game {
         this.ui.finalScore.textContent = this.score;
         this.ui.finalWave.textContent = `All ${this.maxRounds} Rounds Complete!`;
 
+        // Focus Play Again button
+        document.getElementById('restart-btn').focus();
+
         // Play victory sound and stop music
         window.soundManager.playWaveComplete();
         window.soundManager.stopMusic();
@@ -898,6 +1115,63 @@ class Game {
         // Calculate number of enemies with difficulty scaling
         const baseEnemies = 2;
         const enemyCount = baseEnemies + Math.floor(this.round * 0.8);
+
+        // Calculate asteroid count - increases each round
+        const asteroidCount = 8 + Math.floor(this.round * 2);
+
+        // Huge asteroids from round 5
+        const hugeAsteroidCount = this.round >= 5 ? Math.floor((this.round - 4) * 0.5) + 1 : 0;
+
+        // Mines from round 4
+        const mineCount = this.round >= 4 ? Math.floor((this.round - 3) * 0.5) + 1 : 0;
+
+        // Black holes from round 7
+        const blackHoleCount = this.round >= 7 ? Math.floor((this.round - 6) * 0.3) + 1 : 0;
+
+        // Show round transition (pauses the game)
+        this.showRoundTransition(this.round, {
+            asteroidCount: asteroidCount,
+            hugeAsteroidCount: hugeAsteroidCount,
+            enemyCount: enemyCount,
+            mineCount: mineCount,
+            blackHoleCount: blackHoleCount
+        });
+
+        // Spawn huge asteroids (round 5+)
+        for (let i = 0; i < hugeAsteroidCount; i++) {
+            const position = new THREE.Vector3(
+                (Math.random() - 0.5) * this.bounds.width,
+                (Math.random() - 0.5) * this.bounds.height,
+                0
+            );
+            if (position.distanceTo(this.player.mesh.position) > 20) {
+                this.asteroids.push(new Asteroid(position, 'huge', this.scene));
+            }
+        }
+
+        // Spawn asteroids - more and larger as rounds progress
+        const largeBias = Math.min(0.7, 0.4 + this.round * 0.03); // Large chance grows per round
+        for (let i = 0; i < asteroidCount; i++) {
+            const position = new THREE.Vector3(
+                (Math.random() - 0.5) * this.bounds.width,
+                (Math.random() - 0.5) * this.bounds.height,
+                0
+            );
+
+            // Don't spawn too close to player
+            if (position.distanceTo(this.player.mesh.position) > 15) {
+                const random = Math.random();
+                let size;
+                if (random < largeBias) {
+                    size = 'large';
+                } else if (random < largeBias + 0.2) {
+                    size = 'medium';
+                } else {
+                    size = 'small';
+                }
+                this.asteroids.push(new Asteroid(position, size, this.scene));
+            }
+        }
 
         // Spawn enemies in a circle pattern
         for (let i = 0; i < enemyCount; i++) {
@@ -918,6 +1192,26 @@ class Game {
             enemy.health = 50 + (this.round * 5); // +5 health per round
 
             this.enemies.push(enemy);
+        }
+
+        // Spawn mines
+        for (let i = 0; i < mineCount; i++) {
+            const position = new THREE.Vector3(
+                (Math.random() - 0.5) * this.bounds.width * 0.7,
+                (Math.random() - 0.5) * this.bounds.height * 0.7,
+                0
+            );
+            this.mines.push(new SpaceMine(position, this.scene));
+        }
+
+        // Spawn black holes
+        for (let i = 0; i < blackHoleCount; i++) {
+            const position = new THREE.Vector3(
+                (Math.random() - 0.5) * this.bounds.width * 0.5,
+                (Math.random() - 0.5) * this.bounds.height * 0.5,
+                0
+            );
+            this.blackHoles.push(new BlackHole(position, this.scene));
         }
     }
 
@@ -952,6 +1246,207 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
+// Generate 3D preview icons for the legend
+function generateItemPreviews() {
+    const size = 64;
+    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    renderer.setSize(size, size);
+    renderer.setClearColor(0x000000, 0);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+    camera.position.set(0, 0, 4);
+    camera.lookAt(0, 0, 0);
+
+    const ambient = new THREE.AmbientLight(0x606060);
+    scene.add(ambient);
+    const dir = new THREE.DirectionalLight(0xffffff, 1);
+    dir.position.set(2, 2, 4);
+    scene.add(dir);
+
+    function render(mesh) {
+        scene.add(mesh);
+        renderer.render(scene, camera);
+        const url = renderer.domElement.toDataURL();
+        scene.remove(mesh);
+        return url;
+    }
+
+    const previews = {};
+
+    // --- Collectibles ---
+
+    // Shield (blue octahedron + glow)
+    (function() {
+        const g = new THREE.Group();
+        const m = new THREE.Mesh(new THREE.OctahedronGeometry(0.7, 0),
+            new THREE.MeshPhongMaterial({ color: 0x00aaff, emissive: 0x00aaff, emissiveIntensity: 0.5, transparent: true, opacity: 0.8 }));
+        g.add(m);
+        g.add(new THREE.Mesh(new THREE.SphereGeometry(0.4, 8, 8),
+            new THREE.MeshPhongMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.5 })));
+        g.rotation.set(0.3, 0.5, 0);
+        previews.shield = render(g);
+    })();
+
+    // Weapon (red octahedron + glow)
+    (function() {
+        const g = new THREE.Group();
+        g.add(new THREE.Mesh(new THREE.OctahedronGeometry(0.7, 0),
+            new THREE.MeshPhongMaterial({ color: 0xff0000, emissive: 0xff0000, emissiveIntensity: 0.5, transparent: true, opacity: 0.8 })));
+        g.add(new THREE.Mesh(new THREE.SphereGeometry(0.4, 8, 8),
+            new THREE.MeshPhongMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.5 })));
+        g.rotation.set(0.3, 0.5, 0);
+        previews.weapon = render(g);
+    })();
+
+    // Speed (yellow octahedron + glow)
+    (function() {
+        const g = new THREE.Group();
+        g.add(new THREE.Mesh(new THREE.OctahedronGeometry(0.7, 0),
+            new THREE.MeshPhongMaterial({ color: 0xffff00, emissive: 0xffff00, emissiveIntensity: 0.5, transparent: true, opacity: 0.8 })));
+        g.add(new THREE.Mesh(new THREE.SphereGeometry(0.4, 8, 8),
+            new THREE.MeshPhongMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.5 })));
+        g.rotation.set(0.3, 0.5, 0);
+        previews.speed = render(g);
+    })();
+
+    // Score (green octahedron + glow)
+    (function() {
+        const g = new THREE.Group();
+        g.add(new THREE.Mesh(new THREE.OctahedronGeometry(0.7, 0),
+            new THREE.MeshPhongMaterial({ color: 0x00ff00, emissive: 0x00ff00, emissiveIntensity: 0.5, transparent: true, opacity: 0.8 })));
+        g.add(new THREE.Mesh(new THREE.SphereGeometry(0.4, 8, 8),
+            new THREE.MeshPhongMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.5 })));
+        g.rotation.set(0.3, 0.5, 0);
+        previews.score = render(g);
+    })();
+
+    // Ammo (gray box with orange stripes)
+    (function() {
+        const g = new THREE.Group();
+        g.add(new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1),
+            new THREE.MeshPhongMaterial({ color: 0x888888, emissive: 0x444444, emissiveIntensity: 0.3, shininess: 100 })));
+        const stripe = new THREE.MeshBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0.9 });
+        const s1 = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.25, 1.05), stripe);
+        s1.position.y = 0.25;
+        g.add(s1);
+        const s2 = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.25, 1.05), stripe);
+        s2.position.y = -0.25;
+        g.add(s2);
+        g.rotation.set(0.3, 0.5, 0);
+        previews.ammo = render(g);
+    })();
+
+    // Health (white box with pink cross)
+    (function() {
+        const g = new THREE.Group();
+        g.add(new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1),
+            new THREE.MeshPhongMaterial({ color: 0xffffff, emissive: 0xff00ff, emissiveIntensity: 0.4, shininess: 100 })));
+        g.add(new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.25, 1.05),
+            new THREE.MeshBasicMaterial({ color: 0xff00ff, transparent: true, opacity: 0.9 })));
+        g.add(new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.8, 1.05),
+            new THREE.MeshBasicMaterial({ color: 0xff00ff, transparent: true, opacity: 0.9 })));
+        g.rotation.set(0.3, 0.5, 0);
+        previews.health = render(g);
+    })();
+
+    // --- Hazards ---
+
+    // Asteroid (brown icosahedron)
+    (function() {
+        const geo = new THREE.IcosahedronGeometry(1, 0);
+        const pos = geo.attributes.position.array;
+        for (let i = 0; i < pos.length; i += 3) {
+            pos[i] += (Math.random() - 0.5) * 0.2;
+            pos[i+1] += (Math.random() - 0.5) * 0.2;
+            pos[i+2] += (Math.random() - 0.5) * 0.2;
+        }
+        geo.attributes.position.needsUpdate = true;
+        geo.computeVertexNormals();
+        const m = new THREE.Mesh(geo,
+            new THREE.MeshPhongMaterial({ color: 0x8b7355, emissive: 0x4a3929, shininess: 10, flatShading: true }));
+        m.rotation.set(0.4, 0.6, 0);
+        previews.asteroid = render(m);
+    })();
+
+    // Enemy ship (red octahedron + weapons)
+    (function() {
+        const g = new THREE.Group();
+        g.add(new THREE.Mesh(new THREE.OctahedronGeometry(0.8, 0),
+            new THREE.MeshPhongMaterial({ color: 0xff0000, emissive: 0x880000, shininess: 100 })));
+        const wMat = new THREE.MeshPhongMaterial({ color: 0xffaa00, emissive: 0xff5500 });
+        const w1 = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.5), wMat);
+        w1.position.set(0.5, 0, 0.5);
+        w1.rotation.x = Math.PI / 2;
+        g.add(w1);
+        const w2 = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.5), wMat);
+        w2.position.set(-0.5, 0, 0.5);
+        w2.rotation.x = Math.PI / 2;
+        g.add(w2);
+        g.rotation.set(0.2, 0.4, 0);
+        previews.enemy = render(g);
+    })();
+
+    // Space mine (gray sphere + spikes)
+    (function() {
+        const g = new THREE.Group();
+        g.add(new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 8),
+            new THREE.MeshPhongMaterial({ color: 0x444444, emissive: 0xff0000, emissiveIntensity: 0.3 })));
+        const spikeMat = new THREE.MeshPhongMaterial({ color: 0x666666 });
+        for (let i = 0; i < 8; i++) {
+            const spike = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.5, 4), spikeMat);
+            const angle = (Math.PI * 2 * i) / 8;
+            spike.position.set(Math.cos(angle) * 0.5, Math.sin(angle) * 0.5, 0);
+            spike.lookAt(spike.position.clone().multiplyScalar(2));
+            g.add(spike);
+        }
+        g.rotation.set(0.3, 0.3, 0);
+        previews.mine = render(g);
+    })();
+
+    // Black hole (black sphere + orange rings)
+    (function() {
+        camera.position.set(0, 0, 8);
+        camera.lookAt(0, 0, 0);
+        const g = new THREE.Group();
+        g.add(new THREE.Mesh(new THREE.SphereGeometry(1, 32, 32),
+            new THREE.MeshBasicMaterial({ color: 0x000000 })));
+        g.add(new THREE.Mesh(new THREE.RingGeometry(1, 1.5, 64),
+            new THREE.MeshBasicMaterial({ color: 0xff4400, transparent: true, opacity: 0.4, side: THREE.DoubleSide })));
+        g.add(new THREE.Mesh(new THREE.RingGeometry(1.5, 2.5, 64),
+            new THREE.MeshBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0.3, side: THREE.DoubleSide })));
+        g.rotation.set(0.5, 0, 0);
+        previews.blackhole = render(g);
+        camera.position.set(0, 0, 4);
+        camera.lookAt(0, 0, 0);
+    })();
+
+    renderer.dispose();
+    return previews;
+}
+
 // Initialize game
 const game = new Game();
 game.clock = new THREE.Clock();
+
+// Generate and apply 3D previews to start screen
+const itemPreviews = generateItemPreviews();
+game.itemPreviews = itemPreviews;
+
+// Replace emoji icons with rendered 3D previews
+document.querySelectorAll('.item-icon').forEach(el => {
+    const classes = el.className.split(' ');
+    for (const cls of classes) {
+        const key = cls.replace('icon-', '');
+        if (itemPreviews[key]) {
+            const img = document.createElement('img');
+            img.src = itemPreviews[key];
+            img.alt = el.nextElementSibling ? el.nextElementSibling.textContent : key;
+            img.style.width = '100%';
+            img.style.height = '100%';
+            el.textContent = '';
+            el.appendChild(img);
+            break;
+        }
+    }
+});

@@ -10,16 +10,57 @@ class PowerUp {
         // Set properties based on type
         const config = {
             shield: { color: 0x00aaff, icon: '🛡️', duration: 15 },
-            weapon: { color: 0xff0000, icon: '🔫', duration: 15 },
+            weapon: { color: 0xff0000, icon: '🔫', duration: 45 },
             speed: { color: 0xffff00, icon: '⚡', duration: 10 },
             score: { color: 0x00ff00, icon: '⭐', scoreValue: 150 },
-            ammo: { color: 0xffaa00, icon: '💥', ammoValue: 40 }
+            ammo: { color: 0xffaa00, icon: '💥', ammoValue: 100 },
+            health: { color: 0xff00ff, icon: '❤️' }
         };
 
         this.config = config[type];
 
-        // Create power-up mesh - different appearance for ammo boxes
-        if (type === 'ammo') {
+        // Create power-up mesh - different appearance for special types
+        if (type === 'health') {
+            // Health box - white box with pink cross
+            const boxGeometry = new THREE.BoxGeometry(1, 1, 1);
+            const boxMaterial = new THREE.MeshPhongMaterial({
+                color: 0xffffff,
+                emissive: 0xff00ff,
+                emissiveIntensity: 0.4,
+                shininess: 100,
+                specular: 0xffffff
+            });
+            this.mesh = new THREE.Mesh(boxGeometry, boxMaterial);
+            this.mesh.position.copy(position);
+
+            // Cross horizontal bar
+            const crossH = new THREE.Mesh(
+                new THREE.BoxGeometry(0.8, 0.25, 1.05),
+                new THREE.MeshBasicMaterial({ color: 0xff00ff, transparent: true, opacity: 0.9 })
+            );
+            this.mesh.add(crossH);
+
+            // Cross vertical bar
+            const crossV = new THREE.Mesh(
+                new THREE.BoxGeometry(0.25, 0.8, 1.05),
+                new THREE.MeshBasicMaterial({ color: 0xff00ff, transparent: true, opacity: 0.9 })
+            );
+            this.mesh.add(crossV);
+
+            // Strong glow
+            const glowGeometry = new THREE.SphereGeometry(1, 16, 16);
+            const glowMaterial = new THREE.MeshBasicMaterial({
+                color: 0xff00ff,
+                transparent: true,
+                opacity: 0.2
+            });
+            this.glow = new THREE.Mesh(glowGeometry, glowMaterial);
+            this.mesh.add(this.glow);
+
+            this.core = null;
+            this.stripe1 = null;
+            this.stripe2 = null;
+        } else if (type === 'ammo') {
             // Create metal ammo box
             const boxGeometry = new THREE.BoxGeometry(0.8, 0.8, 0.8);
             const boxMaterial = new THREE.MeshPhongMaterial({
@@ -137,20 +178,19 @@ class PowerUp {
     apply(player) {
         switch (this.type) {
             case 'shield':
-                // Store shield instead of activating immediately
-                player.hasShieldAvailable = true;
+                // Add 30s to shield reserve
+                player.shieldReserve = Math.min(player.shieldReserve + 30, player.maxShieldReserve);
                 return {
-                    message: 'SHIELD COLLECTED (Press SHIFT to activate)',
-                    type: 'shield',
-                    stored: true, // Flag to indicate it's stored, not active
-                    duration: this.config.duration
+                    message: 'SHIELD +30s (Hold SHIFT to use)',
+                    type: 'shield'
                 };
 
             case 'weapon':
                 player.weaponBoost = true;
                 player.fireRate = 0.08; // Even faster firing!
+                player.ammo = Math.min(player.ammo + 100, player.maxAmmo);
                 return {
-                    message: 'TRIPLE SHOT',
+                    message: 'TRIPLE SHOT +100 AMMO',
                     duration: this.config.duration,
                     type: 'weapon'
                 };
@@ -180,6 +220,14 @@ class PowerUp {
                     message: `+${this.config.ammoValue} AMMO`,
                     ammoValue: this.config.ammoValue,
                     type: 'ammo'
+                };
+
+            case 'health':
+                // Full health restore
+                player.health = player.maxHealth;
+                return {
+                    message: 'FULL HEALTH RESTORED',
+                    type: 'health'
                 };
         }
     }
@@ -255,16 +303,18 @@ class PowerUpManager {
     spawnPowerUp(bounds) {
         const random = Math.random();
         let type;
-        if (random < 0.1) {
-            type = 'weapon';  // 10% chance
-        } else if (random < 0.2) {
+        if (random < 0.10) {
+            type = 'health';   // 10% chance
+        } else if (random < 0.20) {
+            type = 'weapon';   // 10% chance
+        } else if (random < 0.23) {
             type = 'shield';   // 10% chance
-        } else if (random < 0.3) {
+        } else if (random < 0.33) {
             type = 'speed';    // 10% chance
-        } else if (random < 0.45) {
-            type = 'ammo';     // 15% chance - reduced to make scarce
+        } else if (random < 0.58) {
+            type = 'ammo';     // 25% chance
         } else {
-            type = 'score';    // 55% chance
+            type = 'score';    // 52% chance
         }
 
         const position = new THREE.Vector3(
@@ -286,7 +336,7 @@ class PowerUpManager {
     deactivatePowerUp(type, player) {
         switch (type) {
             case 'shield':
-                player.shields = false;
+                // Shield is now hold-to-use, handled in game.js
                 break;
             case 'weapon':
                 player.weaponBoost = false;
@@ -301,21 +351,8 @@ class PowerUpManager {
     }
 
     activateShield(player) {
-        if (player.hasShieldAvailable && !player.shields) {
-            player.hasShieldAvailable = false;
-            player.shields = true;
-
-            // Add to active powerups with 15 second duration
-            this.activePowerUps.push({
-                type: 'shield',
-                duration: 15,
-                timeLeft: 15,
-                message: 'SHIELD ACTIVE'
-            });
-
-            return true; // Successfully activated
-        }
-        return false; // No shield available or already active
+        // Shield is now hold-to-use, handled in game.js update loop
+        return false;
     }
 
     getActivePowerUps() {

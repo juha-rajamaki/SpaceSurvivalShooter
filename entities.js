@@ -65,7 +65,8 @@ class PlayerShuttle {
 
         // Power-ups
         this.shields = false;
-        this.hasShieldAvailable = false; // Stored shield ready to activate
+        this.shieldReserve = 0; // Seconds of shield remaining (max 30)
+        this.maxShieldReserve = 30;
         this.speedBoost = false;
         this.weaponBoost = false;
 
@@ -282,11 +283,11 @@ class Laser {
 class Asteroid {
     constructor(position, size, scene) {
         this.scene = scene;
-        this.size = size; // 'large', 'medium', 'small'
-        this.health = size === 'large' ? 100 : size === 'medium' ? 50 : 25;
+        this.size = size; // 'huge', 'large', 'medium', 'small'
+        this.health = size === 'huge' ? 300 : size === 'large' ? 100 : size === 'medium' ? 50 : 25;
 
-        // Set radius based on size
-        this.radius = size === 'large' ? 3 : size === 'medium' ? 2 : 1;
+        // Set radius based on size (huge = 4x large)
+        this.radius = size === 'huge' ? 12 : size === 'large' ? 3 : size === 'medium' ? 2 : 1;
         this.mass = this.radius;
 
         // Create asteroid mesh
@@ -319,10 +320,11 @@ class Asteroid {
             (Math.random() - 0.5) * 0.5
         );
 
-        // Random velocity - faster asteroids!
+        // Random velocity - huge rocks are slower due to mass
+        const speed = size === 'huge' ? 5 : 15;
         this.velocity = new THREE.Vector3(
-            (Math.random() - 0.5) * 15,  // Increased from 10
-            (Math.random() - 0.5) * 15,  // Increased from 10
+            (Math.random() - 0.5) * speed,
+            (Math.random() - 0.5) * speed,
             0
         );
     }
@@ -346,7 +348,23 @@ class Asteroid {
 
     break() {
         const fragments = [];
-        if (this.size === 'large') {
+        if (this.size === 'huge') {
+            // Create 3-4 large asteroids
+            const count = Math.floor(Math.random() * 2) + 3;
+            for (let i = 0; i < count; i++) {
+                const angle = (Math.PI * 2 * i) / count;
+                const offset = new THREE.Vector3(
+                    Math.cos(angle) * 5,
+                    Math.sin(angle) * 5,
+                    0
+                );
+                const newPos = this.mesh.position.clone().add(offset);
+                fragments.push(new Asteroid(newPos, 'large', this.scene));
+
+                fragments[fragments.length - 1].velocity = this.velocity.clone()
+                    .add(offset.normalize().multiplyScalar(4));
+            }
+        } else if (this.size === 'large') {
             // Create 2-3 medium asteroids
             const count = Math.floor(Math.random() * 2) + 2;
             for (let i = 0; i < count; i++) {
@@ -398,7 +416,7 @@ class EnemyShip {
         this.radius = 1.5;
         this.mass = 1.5;
         this.maxSpeed = 30;  // Increased from 20 - now as fast as player!
-        this.damage = 20;
+        this.damage = 10;
         this.currentRound = 1;  // Default to round 1 (no shooting)
 
         // Create enemy ship
@@ -501,6 +519,79 @@ class EnemyShip {
         return this.health <= 0;
     }
 
+    break() {
+        const fragments = [];
+        const pos = this.mesh.position.clone();
+
+        // Body fragment (red octahedron piece)
+        const bodyGeo = new THREE.TetrahedronGeometry(0.4, 0);
+        const bodyMat = new THREE.MeshPhongMaterial({ color: 0xff0000, emissive: 0x880000, shininess: 80 });
+        for (let i = 0; i < 3; i++) {
+            const angle = (Math.PI * 2 * i) / 3;
+            const offset = new THREE.Vector3(Math.cos(angle) * 0.8, Math.sin(angle) * 0.8, 0);
+            const frag = new EnemyDebris(pos.clone().add(offset), bodyGeo, bodyMat, this.scene);
+            frag.velocity.copy(offset.normalize().multiplyScalar(8 + Math.random() * 6));
+            fragments.push(frag);
+        }
+
+        // Weapon fragments (orange cylinders)
+        const wGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.35);
+        const wMat = new THREE.MeshPhongMaterial({ color: 0xffaa00, emissive: 0xff5500 });
+        for (let i = 0; i < 2; i++) {
+            const side = i === 0 ? 1 : -1;
+            const frag = new EnemyDebris(
+                pos.clone().add(new THREE.Vector3(side * 0.6, 0, 0)),
+                wGeo, wMat, this.scene
+            );
+            frag.velocity.set(side * 10, (Math.random() - 0.5) * 8, (Math.random() - 0.5) * 4);
+            fragments.push(frag);
+        }
+
+        this.destroy();
+        return fragments;
+    }
+
+    destroy() {
+        this.scene.remove(this.mesh);
+    }
+}
+
+class EnemyDebris {
+    constructor(position, geometry, material, scene) {
+        this.scene = scene;
+        this.mesh = new THREE.Mesh(geometry, material.clone());
+        this.mesh.position.copy(position);
+        this.mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+        scene.add(this.mesh);
+
+        this.velocity = new THREE.Vector3();
+        this.rotationSpeed = new THREE.Vector3(
+            (Math.random() - 0.5) * 8,
+            (Math.random() - 0.5) * 8,
+            (Math.random() - 0.5) * 8
+        );
+        this.lifetime = 1.5 + Math.random() * 1;
+        this.age = 0;
+    }
+
+    update(deltaTime) {
+        this.age += deltaTime;
+        this.mesh.position.add(this.velocity.clone().multiplyScalar(deltaTime));
+        this.mesh.rotation.x += this.rotationSpeed.x * deltaTime;
+        this.mesh.rotation.y += this.rotationSpeed.y * deltaTime;
+        this.mesh.rotation.z += this.rotationSpeed.z * deltaTime;
+
+        // Fade out
+        const alpha = 1 - (this.age / this.lifetime);
+        this.mesh.material.opacity = alpha;
+        this.mesh.material.transparent = true;
+
+        // Slow down
+        this.velocity.multiplyScalar(0.98);
+
+        return this.age >= this.lifetime;
+    }
+
     destroy() {
         this.scene.remove(this.mesh);
     }
@@ -510,7 +601,7 @@ class SpaceMine {
     constructor(position, scene) {
         this.scene = scene;
         this.radius = 1;
-        this.damage = 50;
+        this.damage = 25;
         this.triggerRadius = 5;
         this.triggered = false;
         this.countdown = 1.5;

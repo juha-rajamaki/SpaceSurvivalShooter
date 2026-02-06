@@ -4,22 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Space Survival Shooter</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="game-container">
         <canvas id="gameCanvas"></canvas>
 
+        <!-- Low Health Warning Border -->
+        <div id="low-health-vignette" class="hidden"></div>
+
         <!-- UI Overlay -->
         <div id="ui-overlay">
             <div id="stats">
-                <div class="stat-item">
-                    <span class="label">Health:</span>
-                    <div id="health-bar">
-                        <div id="health-fill"></div>
-                        <span id="health-text">100/100</span>
-                    </div>
-                </div>
                 <div class="stat-item">
                     <span class="label">Score:</span>
                     <span id="score">0</span>
@@ -47,8 +46,23 @@
             </div>
 
             <div id="power-ups">
-                <div id="shield-available" class="hidden">🛡️ SHIELD READY (Press SHIFT)</div>
+                <div id="shield-bar-container" class="hidden">
+                    <span class="label">🛡️ Shield:</span>
+                    <div id="shield-bar">
+                        <div id="shield-fill"></div>
+                        <span id="shield-text">30s</span>
+                    </div>
+                </div>
                 <div id="active-powerups"></div>
+            </div>
+
+            <!-- Health Bar (bottom-left) -->
+            <div id="health-container">
+                <span class="label">Health</span>
+                <div id="health-bar">
+                    <div id="health-fill"></div>
+                    <span id="health-text">100/100</span>
+                </div>
             </div>
         </div>
 
@@ -60,6 +74,9 @@
             <button id="restart-btn">Play Again</button>
         </div>
 
+        <!-- Round Transition Overlay -->
+        <div id="round-transition" class="hidden"></div>
+
         <!-- Start Screen -->
         <div id="start-screen">
             <h1>SPACE SURVIVAL</h1>
@@ -70,8 +87,59 @@
                 <h3>Controls</h3>
                 <p><kbd>↑↓←→</kbd> or <kbd>WASD</kbd> - Move</p>
                 <p><kbd>Space</kbd> - Fire</p>
-                <p><kbd>Shift</kbd> - Activate Shield</p>
-                <p><kbd>P</kbd> - Pause</p>
+                <p><kbd>Shift</kbd> - Hold for Shield</p>
+            </div>
+            <div class="items-guide">
+                <h3>Collectibles</h3>
+                <div class="items-grid">
+                    <div class="item-entry">
+                        <span class="item-icon icon-shield">🛡️</span>
+                        <span class="item-label">Shield</span>
+                    </div>
+                    <div class="item-entry">
+                        <span class="item-icon icon-weapon">🔫</span>
+                        <span class="item-label">Triple Shot</span>
+                    </div>
+                    <div class="item-entry">
+                        <span class="item-icon icon-speed">⚡</span>
+                        <span class="item-label">Speed Boost</span>
+                    </div>
+                    <div class="item-entry">
+                        <span class="item-icon icon-score">⭐</span>
+                        <span class="item-label">Score</span>
+                    </div>
+                    <div class="item-entry">
+                        <span class="item-icon icon-ammo">💥</span>
+                        <span class="item-label">Ammo</span>
+                    </div>
+                    <div class="item-entry">
+                        <span class="item-icon icon-health">❤️</span>
+                        <span class="item-label">Health (rare)</span>
+                    </div>
+                </div>
+                <h3>Hazards</h3>
+                <div class="items-grid">
+                    <div class="item-entry">
+                        <span class="item-icon icon-asteroid">☄️</span>
+                        <span class="item-label">Asteroid</span>
+                    </div>
+                    <div class="item-entry">
+                        <span class="item-icon icon-enemy">👾</span>
+                        <span class="item-label">Enemy Ship</span>
+                    </div>
+                    <div class="item-entry">
+                        <span class="item-icon icon-asteroid">☄️</span>
+                        <span class="item-label">Huge Asteroid <small>(R5+)</small></span>
+                    </div>
+                    <div class="item-entry">
+                        <span class="item-icon icon-mine">💣</span>
+                        <span class="item-label">Mine <small>(R4+)</small></span>
+                    </div>
+                    <div class="item-entry">
+                        <span class="item-icon icon-blackhole">🕳️</span>
+                        <span class="item-label">Black Hole <small>(R7+)</small></span>
+                    </div>
+                </div>
             </div>
             <button id="start-btn">Start Game</button>
         </div>

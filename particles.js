@@ -132,6 +132,25 @@ class ParticleSystem {
         }
     }
 
+    createDebris(position, color = new THREE.Color(0.6, 0.4, 0.2), particleCount = 12) {
+        for (let i = 0; i < particleCount; i++) {
+            const velocity = new THREE.Vector3(
+                (Math.random() - 0.5) * 15,
+                (Math.random() - 0.5) * 15,
+                (Math.random() - 0.5) * 5
+            );
+            const size = Math.random() * 0.6 + 0.2;
+            const lifetime = Math.random() * 0.3 + 0.15;
+
+            const particleColor = color.clone();
+            particleColor.r += (Math.random() - 0.5) * 0.2;
+            particleColor.g += (Math.random() - 0.5) * 0.15;
+            particleColor.b += (Math.random() - 0.5) * 0.1;
+
+            this.emit(position, velocity, particleColor, size, lifetime);
+        }
+    }
+
     createEngineTrail(position, direction, isBoost = false) {
         const count = isBoost ? 5 : 2;
         const baseColor = isBoost ?
