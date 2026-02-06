@@ -163,29 +163,30 @@ class Laser {
         this.radius = 0.2;
         this.speed = 80;
         this.damage = 35;  // Increased from 25 - more effective!
-        this.lifetime = 3;  // 3 seconds lifetime
+        this.lifetime = 2;  // 2 seconds lifetime
         this.age = 0;
 
-        // Create laser mesh - HIGHLY VISIBLE
-        const geometry = new THREE.BoxGeometry(0.5, 3, 0.5);  // Visible box shape
-        const material = new THREE.MeshBasicMaterial({
-            color: 0x00ff00  // Bright green for visibility
+        // Create laser mesh
+        const geometry = new THREE.CapsuleGeometry(0.1, 1.5, 4, 8);
+        const material = new THREE.MeshPhongMaterial({
+            color: 0x00ffff,
+            emissive: 0x00ffff,
+            emissiveIntensity: 2
         });
         this.mesh = new THREE.Mesh(geometry, material);
         this.mesh.position.copy(position);
+        this.mesh.rotation.x = Math.PI / 2;
         scene.add(this.mesh);
 
-        // Add large glow for visibility
-        const glowGeometry = new THREE.SphereGeometry(1, 8, 8);
+        // Add glow
+        const glowGeometry = new THREE.SphereGeometry(0.3, 8, 8);
         const glowMaterial = new THREE.MeshBasicMaterial({
-            color: 0xffff00,  // Yellow glow
+            color: 0x00ffff,
             transparent: true,
-            opacity: 0.5
+            opacity: 0.3
         });
         this.glow = new THREE.Mesh(glowGeometry, glowMaterial);
         this.mesh.add(this.glow);
-
-        console.log('LASER CREATED: Position =', position.x, position.y, position.z);
 
         this.velocity = direction.multiplyScalar(this.speed);
     }
