@@ -146,6 +146,7 @@ class Game {
                 case ' ':
                     e.preventDefault();
                     this.input.fire = true;
+                    console.log('Space pressed! fire=true, isRunning=', this.isRunning, 'gameOver=', this.gameOver, 'isPaused=', this.isPaused);
                     break;
                 case 'shift':
                     this.input.boost = true;
@@ -400,8 +401,10 @@ class Game {
             // Handle player update and firing first to get acceleration
             const newLasers = this.player.update(deltaTime, this.input, currentTime);
             if (newLasers) {
+                console.log('Adding', newLasers.length, 'lasers to array. Total lasers:', this.lasers.length);
                 this.lasers.push(...newLasers);
                 window.soundManager.playLaser();
+                console.log('Lasers array now has', this.lasers.length, 'lasers');
             }
 
             // Update physics
