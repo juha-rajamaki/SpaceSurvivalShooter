@@ -60,7 +60,7 @@ class PlayerShuttle {
         this.fireRate = 0.15; // Faster shooting! (was 0.2)
         this.lastFireTime = -999; // Initialize to allow immediate first shot
         this.weaponLevel = 1;
-        this.ammo = 100; // Starting ammunition
+        this.ammo = 150; // Starting ammunition - increased since ammo is scarce
         this.maxAmmo = 999; // Maximum ammunition capacity
 
         // Power-ups

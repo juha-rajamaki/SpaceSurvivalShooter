@@ -13,7 +13,7 @@ class PowerUp {
             weapon: { color: 0xff0000, icon: '🔫', duration: 15 },
             speed: { color: 0xffff00, icon: '⚡', duration: 10 },
             score: { color: 0x00ff00, icon: '⭐', scoreValue: 150 },
-            ammo: { color: 0xffaa00, icon: '💥', ammoValue: 50 }
+            ammo: { color: 0xffaa00, icon: '💥', ammoValue: 40 }
         };
 
         this.config = config[type];
@@ -261,10 +261,10 @@ class PowerUpManager {
             type = 'shield';   // 10% chance
         } else if (random < 0.3) {
             type = 'speed';    // 10% chance
-        } else if (random < 0.6) {
-            type = 'ammo';     // 30% chance - increased
+        } else if (random < 0.45) {
+            type = 'ammo';     // 15% chance - reduced to make scarce
         } else {
-            type = 'score';    // 40% chance
+            type = 'score';    // 55% chance
         }
 
         const position = new THREE.Vector3(
@@ -316,22 +316,6 @@ class PowerUpManager {
             return true; // Successfully activated
         }
         return false; // No shield available or already active
-    }
-
-    hasAmmoPowerUp() {
-        // Check if there's any ammo powerup in the world
-        return this.powerUps.some(p => p.type === 'ammo');
-    }
-
-    spawnEmergencyAmmo(bounds) {
-        // Spawn ammo crate randomly across the entire game world
-        const position = new THREE.Vector3(
-            (Math.random() - 0.5) * bounds.width * 0.9,  // Spawn across 90% of width
-            (Math.random() - 0.5) * bounds.height * 0.9, // Spawn across 90% of height
-            0
-        );
-
-        this.spawnPowerUpAt(position, 'ammo');
     }
 
     getActivePowerUps() {

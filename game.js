@@ -598,11 +598,6 @@ class Game {
             this.updatePowerUpUI();
         }
 
-        // Always ensure at least 1 ammo crate exists in the world
-        if (!this.powerUpManager.hasAmmoPowerUp()) {
-            this.powerUpManager.spawnEmergencyAmmo(this.bounds);
-        }
-
         // Update particle system
         this.particleSystem.update(deltaTime);
 
