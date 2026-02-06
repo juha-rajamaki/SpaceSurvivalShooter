@@ -130,6 +130,15 @@ class Game {
             if (e.key === ' ' || e.code === 'Space' || e.keyCode === 32) {
                 e.preventDefault();
                 this.input.fire = true;
+
+                // Also trigger immediate laser creation (works around timing issues)
+                if (this.isRunning && this.player && !this.gameOver && !this.isPaused) {
+                    const lasers = this.player.createLaser();
+                    if (lasers && lasers.length > 0) {
+                        this.lasers.push(...lasers);
+                        window.soundManager.playLaser();
+                    }
+                }
                 return;
             }
 
