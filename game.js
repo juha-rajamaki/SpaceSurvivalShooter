@@ -126,13 +126,6 @@ class Game {
     setupEventListeners() {
         // Keyboard controls
         document.addEventListener('keydown', (e) => {
-            // Handle space key specially (both e.key and e.code)
-            if (e.key === ' ' || e.code === 'Space' || e.keyCode === 32) {
-                e.preventDefault();
-                this.input.fire = true;
-                return;
-            }
-
             switch (e.key.toLowerCase()) {
                 case 'arrowleft':
                 case 'a':
@@ -150,6 +143,10 @@ class Game {
                 case 's':
                     this.input.down = true;
                     break;
+                case ' ':
+                    e.preventDefault();
+                    this.input.fire = true;
+                    break;
                 case 'shift':
                     this.input.boost = true;
                     break;
@@ -160,12 +157,6 @@ class Game {
         });
 
         document.addEventListener('keyup', (e) => {
-            // Handle space key specially
-            if (e.key === ' ' || e.code === 'Space') {
-                this.input.fire = false;
-                return;
-            }
-
             switch (e.key.toLowerCase()) {
                 case 'arrowleft':
                 case 'a':
@@ -182,6 +173,9 @@ class Game {
                 case 'arrowdown':
                 case 's':
                     this.input.down = false;
+                    break;
+                case ' ':
+                    this.input.fire = false;
                     break;
                 case 'shift':
                     this.input.boost = false;
