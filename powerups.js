@@ -13,40 +13,82 @@ class PowerUp {
             weapon: { color: 0xff0000, icon: '🔫', duration: 15 },
             speed: { color: 0xffff00, icon: '⚡', duration: 10 },
             score: { color: 0x00ff00, icon: '⭐', scoreValue: 500 },
-            ammo: { color: 0xffaa00, icon: '💥', ammoValue: 30 }
+            ammo: { color: 0xffaa00, icon: '💥', ammoValue: 50 }
         };
 
         this.config = config[type];
 
-        // Create power-up mesh
-        const geometry = new THREE.OctahedronGeometry(0.5, 0);
-        const material = new THREE.MeshPhongMaterial({
-            color: this.config.color,
-            emissive: this.config.color,
-            emissiveIntensity: 0.5,
-            transparent: true,
-            opacity: 0.8
-        });
-        this.mesh = new THREE.Mesh(geometry, material);
-        this.mesh.position.copy(position);
+        // Create power-up mesh - different appearance for ammo boxes
+        if (type === 'ammo') {
+            // Create metal ammo box
+            const boxGeometry = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+            const boxMaterial = new THREE.MeshPhongMaterial({
+                color: 0x888888,
+                emissive: 0x444444,
+                emissiveIntensity: 0.3,
+                shininess: 100,
+                specular: 0xffffff
+            });
+            this.mesh = new THREE.Mesh(boxGeometry, boxMaterial);
+            this.mesh.position.copy(position);
 
-        // Outer glow
-        const glowGeometry = new THREE.SphereGeometry(0.8, 16, 16);
-        const glowMaterial = new THREE.MeshBasicMaterial({
-            color: this.config.color,
-            transparent: true,
-            opacity: 0.2
-        });
-        this.glow = new THREE.Mesh(glowGeometry, glowMaterial);
-        this.mesh.add(this.glow);
+            // Add warning stripes
+            const stripeGeometry = new THREE.BoxGeometry(0.85, 0.2, 0.85);
+            const stripeMaterial = new THREE.MeshBasicMaterial({
+                color: this.config.color,
+                transparent: true,
+                opacity: 0.9
+            });
+            this.stripe1 = new THREE.Mesh(stripeGeometry, stripeMaterial);
+            this.stripe1.position.y = 0.2;
+            this.mesh.add(this.stripe1);
 
-        // Inner core
-        const coreGeometry = new THREE.SphereGeometry(0.3, 8, 8);
-        const coreMaterial = new THREE.MeshBasicMaterial({
-            color: 0xffffff
-        });
-        this.core = new THREE.Mesh(coreGeometry, coreMaterial);
-        this.mesh.add(this.core);
+            this.stripe2 = new THREE.Mesh(stripeGeometry, stripeMaterial);
+            this.stripe2.position.y = -0.2;
+            this.mesh.add(this.stripe2);
+
+            // Add glow for ammo
+            const glowGeometry = new THREE.SphereGeometry(0.6, 16, 16);
+            const glowMaterial = new THREE.MeshBasicMaterial({
+                color: this.config.color,
+                transparent: true,
+                opacity: 0.15
+            });
+            this.glow = new THREE.Mesh(glowGeometry, glowMaterial);
+            this.mesh.add(this.glow);
+
+            this.core = null; // No core for ammo boxes
+        } else {
+            // Standard powerup appearance
+            const geometry = new THREE.OctahedronGeometry(0.5, 0);
+            const material = new THREE.MeshPhongMaterial({
+                color: this.config.color,
+                emissive: this.config.color,
+                emissiveIntensity: 0.5,
+                transparent: true,
+                opacity: 0.8
+            });
+            this.mesh = new THREE.Mesh(geometry, material);
+            this.mesh.position.copy(position);
+
+            // Outer glow
+            const glowGeometry = new THREE.SphereGeometry(0.8, 16, 16);
+            const glowMaterial = new THREE.MeshBasicMaterial({
+                color: this.config.color,
+                transparent: true,
+                opacity: 0.2
+            });
+            this.glow = new THREE.Mesh(glowGeometry, glowMaterial);
+            this.mesh.add(this.glow);
+
+            // Inner core
+            const coreGeometry = new THREE.SphereGeometry(0.3, 8, 8);
+            const coreMaterial = new THREE.MeshBasicMaterial({
+                color: 0xffffff
+            });
+            this.core = new THREE.Mesh(coreGeometry, coreMaterial);
+            this.mesh.add(this.core);
+        }
 
         scene.add(this.mesh);
 
@@ -60,9 +102,13 @@ class PowerUp {
     update(deltaTime) {
         this.time += deltaTime;
 
-        // Rotation
-        this.mesh.rotation.y += this.rotationSpeed * deltaTime;
-        this.mesh.rotation.x += this.rotationSpeed * 0.5 * deltaTime;
+        // Rotation - slower for ammo boxes
+        if (this.type === 'ammo') {
+            this.mesh.rotation.y += this.rotationSpeed * 0.3 * deltaTime;
+        } else {
+            this.mesh.rotation.y += this.rotationSpeed * deltaTime;
+            this.mesh.rotation.x += this.rotationSpeed * 0.5 * deltaTime;
+        }
 
         // Bobbing motion
         this.mesh.position.y = this.initialY + Math.sin(this.time * this.bobSpeed) * this.bobAmount;
@@ -70,10 +116,20 @@ class PowerUp {
         // Pulsing glow
         const pulse = Math.sin(this.time * 3) * 0.2 + 1;
         this.glow.scale.setScalar(pulse);
-        this.mesh.material.emissiveIntensity = 0.5 + Math.sin(this.time * 4) * 0.3;
 
-        // Sparkle effect on core
-        this.core.material.emissiveIntensity = Math.abs(Math.sin(this.time * 10));
+        if (this.type === 'ammo') {
+            // Pulsing stripes for ammo boxes
+            const stripePulse = Math.sin(this.time * 4) * 0.3 + 0.7;
+            if (this.stripe1) this.stripe1.material.opacity = stripePulse;
+            if (this.stripe2) this.stripe2.material.opacity = stripePulse;
+        } else {
+            this.mesh.material.emissiveIntensity = 0.5 + Math.sin(this.time * 4) * 0.3;
+        }
+
+        // Sparkle effect on core (only for non-ammo powerups)
+        if (this.core) {
+            this.core.material.emissiveIntensity = Math.abs(Math.sin(this.time * 10));
+        }
     }
 
     apply(player) {
