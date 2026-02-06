@@ -97,6 +97,11 @@ class PowerUp {
         this.bobAmount = 0.5;
         this.initialY = position.y;
         this.time = 0;
+
+        // Debug logging for ammo crates
+        if (type === 'ammo') {
+            console.log('Ammo crate spawned at:', position.x.toFixed(2), position.y.toFixed(2));
+        }
     }
 
     update(deltaTime) {

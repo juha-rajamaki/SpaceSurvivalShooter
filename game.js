@@ -292,6 +292,11 @@ class Game {
         // Create player
         this.player = new PlayerShuttle(this.scene);
 
+        // TEST: Spawn a test ammo crate near the player to verify visibility
+        const testAmmoPos = new THREE.Vector3(10, 10, 0);
+        this.powerUpManager.spawnPowerUpAt(testAmmoPos, 'ammo');
+        console.log('Test ammo crate spawned at (10, 10, 0)');
+
         // Start first round
         this.startRound();
 
