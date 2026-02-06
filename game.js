@@ -877,7 +877,7 @@ class Game {
         const regularEnemies = this.enemies.filter(e => !(e instanceof Matriarch));
         if (regularEnemies.length === 0 && !this.isPaused && !this.gameOver) {
             this.enemyRespawnTimer += deltaTime;
-            if (this.enemyRespawnTimer >= 3) {
+            if (this.enemyRespawnTimer >= 10) {
                 this.enemyRespawnTimer = 0;
                 this.enemyWaveNumber++;
                 this.spawnReplacementEnemies();
@@ -1729,10 +1729,10 @@ class Game {
     }
 
     spawnReplacementEnemies() {
-        const baseCount = 2 + Math.floor(this.round * 0.5);
-        const cappedWave = Math.min(this.enemyWaveNumber, 8);
+        const baseCount = 1 + Math.floor(this.round * 0.3);
+        const cappedWave = Math.min(this.enemyWaveNumber, 5);
         const currentCount = this.enemies.filter(e => !(e instanceof Matriarch)).length;
-        const count = Math.min(baseCount + cappedWave, 20 - currentCount);
+        const count = Math.min(baseCount + cappedWave, 12 - currentCount);
         if (count <= 0) return;
 
         for (let i = 0; i < count; i++) {
