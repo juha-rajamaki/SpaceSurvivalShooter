@@ -323,13 +323,11 @@ class PowerUpManager {
         return this.powerUps.some(p => p.type === 'ammo');
     }
 
-    spawnEmergencyAmmo(playerPosition) {
-        // Spawn ammo crate near player in visible range
-        const angle = Math.random() * Math.PI * 2;
-        const distance = 10 + Math.random() * 15; // 10-25 units away (closer)
+    spawnEmergencyAmmo(bounds) {
+        // Spawn ammo crate randomly across the entire game world
         const position = new THREE.Vector3(
-            playerPosition.x + Math.cos(angle) * distance,
-            playerPosition.y + Math.sin(angle) * distance,
+            (Math.random() - 0.5) * bounds.width * 0.9,  // Spawn across 90% of width
+            (Math.random() - 0.5) * bounds.height * 0.9, // Spawn across 90% of height
             0
         );
 

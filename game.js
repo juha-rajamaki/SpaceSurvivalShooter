@@ -600,7 +600,7 @@ class Game {
 
         // Always ensure at least 1 ammo crate exists in the world
         if (!this.powerUpManager.hasAmmoPowerUp()) {
-            this.powerUpManager.spawnEmergencyAmmo(this.player.mesh.position);
+            this.powerUpManager.spawnEmergencyAmmo(this.bounds);
         }
 
         // Update particle system
