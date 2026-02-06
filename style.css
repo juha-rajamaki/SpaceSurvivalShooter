@@ -90,11 +90,10 @@ body {
     font-weight: bold;
 }
 
-#multiplier {
-    color: #00ff00;
-    margin-left: 10px;
+#ammo {
+    color: #ffffff;
     font-size: 20px;
-    animation: pulse 0.5s infinite;
+    font-weight: bold;
 }
 
 #timer {
@@ -109,9 +108,23 @@ body {
     left: 20px;
 }
 
+#shield-available {
+    padding: 8px 15px;
+    background: rgba(0, 170, 255, 0.3);
+    border: 2px solid #00aaff;
+    border-radius: 8px;
+    color: #00aaff;
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    animation: pulse 1s infinite;
+    text-shadow: 0 0 10px rgba(0, 170, 255, 0.8);
+}
+
 #active-powerups {
     display: flex;
     gap: 10px;
+    flex-wrap: wrap;
 }
 
 .powerup-indicator {
@@ -125,7 +138,6 @@ body {
 .powerup-shield { border-color: #00aaff; color: #00aaff; }
 .powerup-weapon { border-color: #ff0000; color: #ff0000; }
 .powerup-speed { border-color: #ffff00; color: #ffff00; }
-.powerup-multiplier { border-color: #00ff00; color: #00ff00; }
 
 /* Start Screen */
 #start-screen {

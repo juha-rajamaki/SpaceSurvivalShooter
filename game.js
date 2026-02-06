@@ -49,8 +49,7 @@ class Game {
             right: false,
             up: false,
             down: false,
-            fire: false,
-            boost: false
+            fire: false
         };
 
         // Round configuration
@@ -157,7 +156,16 @@ class Game {
                     this.input.fire = true;
                     break;
                 case 'shift':
-                    this.input.boost = true;
+                    e.preventDefault();
+                    // Activate shield if available
+                    if (this.player && this.player.hasShieldAvailable) {
+                        const activated = this.powerUpManager.activateShield(this.player);
+                        if (activated) {
+                            this.showPowerUpMessage('SHIELD ACTIVATED');
+                            window.soundManager.playPowerUp();
+                            this.updatePowerUpUI();
+                        }
+                    }
                     break;
                 case 'p':
                     this.togglePause();
@@ -185,9 +193,6 @@ class Game {
                     break;
                 case ' ':
                     this.input.fire = false;
-                    break;
-                case 'shift':
-                    this.input.boost = false;
                     break;
             }
         });
@@ -242,11 +247,12 @@ class Game {
     initUI() {
         this.ui = {
             score: document.getElementById('score'),
+            ammo: document.getElementById('ammo'),
             round: document.getElementById('round'),
             timer: document.getElementById('timer'),
             healthFill: document.getElementById('health-fill'),
             healthText: document.getElementById('health-text'),
-            multiplier: document.getElementById('multiplier'),
+            shieldAvailable: document.getElementById('shield-available'),
             activePowerups: document.getElementById('active-powerups'),
             startScreen: document.getElementById('start-screen'),
             gameOver: document.getElementById('game-over'),
@@ -449,7 +455,7 @@ class Game {
                 const trailPos = this.player.mesh.position.clone();
                 trailPos.z -= 1.5;
                 const direction = this.player.velocity.clone().normalize();
-                const isBoosting = this.input.boost && this.player.speedBoost;
+                const isBoosting = this.player.speedBoost;
                 this.particleSystem.createEngineTrail(
                     trailPos,
                     direction,
@@ -553,6 +559,12 @@ class Game {
         if (powerUpEffect) {
             this.showPowerUpMessage(powerUpEffect.message);
             window.soundManager.playPowerUp();
+
+            // Add score if it's a score powerup
+            if (powerUpEffect.scoreValue) {
+                this.addScore(powerUpEffect.scoreValue);
+            }
+
             this.updatePowerUpUI();
         }
 
@@ -585,6 +597,14 @@ class Game {
                             30
                         );
                         window.soundManager.playExplosion(this.asteroids[j].size);
+
+                        // Drop score collectible (50% chance)
+                        if (Math.random() < 0.5) {
+                            this.powerUpManager.spawnPowerUpAt(
+                                this.asteroids[j].mesh.position.clone(),
+                                'score'
+                            );
+                        }
 
                         // Create fragments
                         const fragments = this.asteroids[j].break();
@@ -690,7 +710,7 @@ class Game {
     }
 
     addScore(points) {
-        this.score += points * this.player.scoreMultiplier;
+        this.score += points;
         this.ui.score.textContent = this.score;
     }
 
@@ -720,6 +740,17 @@ class Game {
         this.ui.healthFill.style.width = healthPercent + '%';
         this.ui.healthText.textContent = `${Math.ceil(this.player.health)}/${this.player.maxHealth}`;
 
+        // Update ammo display
+        this.ui.ammo.textContent = this.player.ammo;
+        // Change color based on ammo level
+        if (this.player.ammo === 0) {
+            this.ui.ammo.style.color = '#ff0000'; // Red when empty
+        } else if (this.player.ammo < 20) {
+            this.ui.ammo.style.color = '#ffaa00'; // Orange when low
+        } else {
+            this.ui.ammo.style.color = '#ffffff'; // White when normal
+        }
+
         // Update round display
         this.ui.round.textContent = `${this.round}/${this.maxRounds}`;
 
@@ -737,12 +768,11 @@ class Game {
             this.ui.timer.style.color = '#ff00ff'; // Purple (default)
         }
 
-        // Update multiplier
-        if (this.player.scoreMultiplier > 1) {
-            this.ui.multiplier.textContent = 'x' + this.player.scoreMultiplier;
-            this.ui.multiplier.classList.remove('hidden');
+        // Show/hide shield available indicator
+        if (this.player.hasShieldAvailable) {
+            this.ui.shieldAvailable.classList.remove('hidden');
         } else {
-            this.ui.multiplier.classList.add('hidden');
+            this.ui.shieldAvailable.classList.add('hidden');
         }
     }
 

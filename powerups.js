@@ -9,10 +9,11 @@ class PowerUp {
 
         // Set properties based on type
         const config = {
-            shield: { color: 0x00aaff, icon: '🛡️', duration: 10 },
+            shield: { color: 0x00aaff, icon: '🛡️', duration: 15 },
             weapon: { color: 0xff0000, icon: '🔫', duration: 15 },
             speed: { color: 0xffff00, icon: '⚡', duration: 10 },
-            multiplier: { color: 0x00ff00, icon: '2x', duration: 20 }
+            score: { color: 0x00ff00, icon: '⭐', scoreValue: 500 },
+            ammo: { color: 0xffaa00, icon: '💥', ammoValue: 30 }
         };
 
         this.config = config[type];
@@ -78,11 +79,13 @@ class PowerUp {
     apply(player) {
         switch (this.type) {
             case 'shield':
-                player.shields = true;
+                // Store shield instead of activating immediately
+                player.hasShieldAvailable = true;
                 return {
-                    message: 'SHIELDS ACTIVATED',
-                    duration: this.config.duration,
-                    type: 'shield'
+                    message: 'SHIELD COLLECTED (Press SHIFT to activate)',
+                    type: 'shield',
+                    stored: true, // Flag to indicate it's stored, not active
+                    duration: this.config.duration
                 };
 
             case 'weapon':
@@ -104,12 +107,21 @@ class PowerUp {
                     type: 'speed'
                 };
 
-            case 'multiplier':
-                player.scoreMultiplier = 2;
+            case 'score':
+                // Instant score bonus - no duration needed
                 return {
-                    message: 'SCORE x2',
-                    duration: this.config.duration,
-                    type: 'multiplier'
+                    message: `+${this.config.scoreValue} POINTS`,
+                    scoreValue: this.config.scoreValue,
+                    type: 'score'
+                };
+
+            case 'ammo':
+                // Instant ammo refill - no duration needed
+                player.ammo = Math.min(player.ammo + this.config.ammoValue, player.maxAmmo);
+                return {
+                    message: `+${this.config.ammoValue} AMMO`,
+                    ammoValue: this.config.ammoValue,
+                    type: 'ammo'
                 };
         }
     }
@@ -147,12 +159,16 @@ class PowerUpManager {
                 const distance = powerUp.mesh.position.distanceTo(player.mesh.position);
                 if (distance < powerUp.radius + player.radius) {
                     const effect = powerUp.apply(player);
-                    this.activePowerUps.push({
-                        type: effect.type,
-                        duration: effect.duration,
-                        timeLeft: effect.duration,
-                        message: effect.message
-                    });
+
+                    // Only add to active powerups if it has a duration and isn't stored
+                    if (effect.duration && !effect.stored) {
+                        this.activePowerUps.push({
+                            type: effect.type,
+                            duration: effect.duration,
+                            timeLeft: effect.duration,
+                            message: effect.message
+                        });
+                    }
 
                     powerUp.destroy();
                     this.powerUps.splice(i, 1);
@@ -179,17 +195,18 @@ class PowerUpManager {
     }
 
     spawnPowerUp(bounds) {
-        // Weapon power-ups are rarer (10% chance)
         const random = Math.random();
         let type;
         if (random < 0.1) {
             type = 'weapon';  // 10% chance
+        } else if (random < 0.25) {
+            type = 'shield';   // 15% chance
         } else if (random < 0.4) {
-            type = 'shield';   // 30% chance
-        } else if (random < 0.7) {
-            type = 'speed';    // 30% chance
+            type = 'speed';    // 15% chance
+        } else if (random < 0.65) {
+            type = 'ammo';     // 25% chance
         } else {
-            type = 'multiplier'; // 30% chance
+            type = 'score';    // 35% chance
         }
 
         const position = new THREE.Vector3(
@@ -198,6 +215,12 @@ class PowerUpManager {
             0
         );
 
+        const powerUp = new PowerUp(position, type, this.scene);
+        this.powerUps.push(powerUp);
+    }
+
+    spawnPowerUpAt(position, type) {
+        // Spawn a specific powerup type at a specific position
         const powerUp = new PowerUp(position, type, this.scene);
         this.powerUps.push(powerUp);
     }
@@ -216,10 +239,25 @@ class PowerUpManager {
                 player.maxSpeed = 40;  // Back to new base speed
                 player.accelerationForce = 75;  // Back to new base acceleration
                 break;
-            case 'multiplier':
-                player.scoreMultiplier = 1;
-                break;
         }
+    }
+
+    activateShield(player) {
+        if (player.hasShieldAvailable && !player.shields) {
+            player.hasShieldAvailable = false;
+            player.shields = true;
+
+            // Add to active powerups with 15 second duration
+            this.activePowerUps.push({
+                type: 'shield',
+                duration: 15,
+                timeLeft: 15,
+                message: 'SHIELD ACTIVE'
+            });
+
+            return true; // Successfully activated
+        }
+        return false; // No shield available or already active
     }
 
     getActivePowerUps() {

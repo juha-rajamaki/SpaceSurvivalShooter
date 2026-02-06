@@ -60,12 +60,18 @@ class PlayerShuttle {
         this.fireRate = 0.15; // Faster shooting! (was 0.2)
         this.lastFireTime = -999; // Initialize to allow immediate first shot
         this.weaponLevel = 1;
+        this.ammo = 100; // Starting ammunition
+        this.maxAmmo = 999; // Maximum ammunition capacity
 
         // Power-ups
         this.shields = false;
+        this.hasShieldAvailable = false; // Stored shield ready to activate
         this.speedBoost = false;
         this.weaponBoost = false;
-        this.scoreMultiplier = 1;
+
+        // Shield visual effect
+        this.shieldMesh = null;
+        this.createShieldVisual();
     }
 
     update(deltaTime, input, currentTime) {
@@ -92,8 +98,9 @@ class PlayerShuttle {
             this.mesh.rotation.x *= 0.9;
         }
 
-        if (input.boost && this.speedBoost) {
-            acc.multiplyScalar(2);
+        // Speed boost is always active when you have the powerup
+        if (this.speedBoost) {
+            acc.multiplyScalar(1.6);
         }
 
         // Store acceleration for physics update
@@ -109,12 +116,19 @@ class PlayerShuttle {
             this.engine.material.emissiveIntensity = 0.5;
         }
 
-        // Handle firing - SIMPLIFIED TO ALWAYS WORK
-        if (input.fire) {
+        // Update shield visual
+        this.updateShieldVisual(deltaTime, currentTime);
+
+        // Handle firing - Check ammo
+        if (input.fire && this.ammo > 0) {
             const timeSinceLastFire = currentTime - this.lastFireTime;
             if (timeSinceLastFire > this.fireRate) {
                 this.lastFireTime = currentTime;
                 const lasers = this.createLaser();
+
+                // Consume ammo (1 per shot, or 3 for triple shot)
+                this.ammo -= lasers.length;
+
                 return lasers;
             }
         }
@@ -146,8 +160,59 @@ class PlayerShuttle {
         return lasers;
     }
 
+    createShieldVisual() {
+        // Create a semi-transparent sphere around the player
+        const geometry = new THREE.SphereGeometry(2.5, 32, 32);
+        const material = new THREE.MeshBasicMaterial({
+            color: 0x00aaff,
+            transparent: true,
+            opacity: 0.3,
+            side: THREE.DoubleSide,
+            blending: THREE.AdditiveBlending
+        });
+        this.shieldMesh = new THREE.Mesh(geometry, material);
+        this.shieldMesh.visible = false; // Hidden by default
+        this.mesh.add(this.shieldMesh);
+
+        // Add hexagonal pattern overlay
+        const hexGeometry = new THREE.IcosahedronGeometry(2.6, 1);
+        const hexMaterial = new THREE.MeshBasicMaterial({
+            color: 0x00ffff,
+            transparent: true,
+            opacity: 0.2,
+            wireframe: true
+        });
+        this.shieldHex = new THREE.Mesh(hexGeometry, hexMaterial);
+        this.shieldHex.visible = false;
+        this.mesh.add(this.shieldHex);
+    }
+
+    updateShieldVisual(deltaTime, currentTime) {
+        if (this.shields && this.shieldMesh) {
+            // Show shield
+            this.shieldMesh.visible = true;
+            this.shieldHex.visible = true;
+
+            // Animate shield - pulsing and rotating
+            const pulse = Math.sin(currentTime * 3) * 0.1 + 0.3;
+            this.shieldMesh.material.opacity = pulse;
+            this.shieldHex.material.opacity = pulse * 0.7;
+
+            this.shieldMesh.rotation.y += deltaTime * 0.5;
+            this.shieldHex.rotation.y -= deltaTime * 0.3;
+            this.shieldHex.rotation.x += deltaTime * 0.2;
+        } else if (this.shieldMesh) {
+            // Hide shield
+            this.shieldMesh.visible = false;
+            this.shieldHex.visible = false;
+        }
+    }
+
     takeDamage(amount) {
-        if (this.shields) return false;
+        // Shields reduce damage by 70% instead of blocking completely
+        if (this.shields) {
+            amount *= 0.3; // Only 30% damage gets through
+        }
 
         this.health -= amount;
         if (this.health <= 0) {
