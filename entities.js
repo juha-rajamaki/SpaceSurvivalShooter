@@ -58,7 +58,7 @@ class PlayerShuttle {
         // Weapons
         this.canFire = true;
         this.fireRate = 0.15; // Faster shooting! (was 0.2)
-        this.lastFireTime = 0;
+        this.lastFireTime = -999; // Initialize to allow immediate first shot
         this.weaponLevel = 1;
 
         // Power-ups
@@ -109,27 +109,32 @@ class PlayerShuttle {
             this.engine.material.emissiveIntensity = 0.5;
         }
 
-        // Handle firing
-        if (input.fire && currentTime - this.lastFireTime > this.fireRate) {
-            console.log('FIRING! currentTime=', currentTime, 'lastFireTime=', this.lastFireTime);
-            this.lastFireTime = currentTime;
-            const lasers = this.createLaser();
-            console.log('Created', lasers.length, 'lasers');
-            return lasers;
-        } else if (input.fire) {
-            console.log('Fire pressed but cooldown:', currentTime - this.lastFireTime, 'need', this.fireRate);
+        // Handle firing - SIMPLIFIED TO ALWAYS WORK
+        if (input.fire) {
+            const timeSinceLastFire = currentTime - this.lastFireTime;
+            if (timeSinceLastFire > this.fireRate) {
+                console.log('FIRING! Creating lasers');
+                this.lastFireTime = currentTime;
+                const lasers = this.createLaser();
+                console.log('Created', lasers ? lasers.length : 0, 'lasers');
+                return lasers;
+            } else {
+                console.log('Cooldown active:', timeSinceLastFire.toFixed(3), 'need', this.fireRate);
+            }
         }
 
         return null;
     }
 
     createLaser() {
+        console.log('createLaser called! Position:', this.mesh.position.x, this.mesh.position.y);
         const lasers = [];
         const basePosition = this.mesh.position.clone();
         const direction = new THREE.Vector3(0, 1, 0);  // Shoot upward in the game plane
 
         if (this.weaponBoost || this.weaponLevel > 1) {
             // Triple shot
+            console.log('Creating triple shot');
             for (let i = -1; i <= 1; i++) {
                 const laser = new Laser(
                     basePosition.clone().add(new THREE.Vector3(i * 0.5, 0, 0)),
@@ -140,9 +145,12 @@ class PlayerShuttle {
             }
         } else {
             // Single shot
-            lasers.push(new Laser(basePosition, direction, this.scene));
+            console.log('Creating single shot');
+            const laser = new Laser(basePosition, direction, this.scene);
+            lasers.push(laser);
         }
 
+        console.log('createLaser returning', lasers.length, 'lasers');
         return lasers;
     }
 
@@ -171,8 +179,8 @@ class Laser {
         this.lifetime = 2;  // 2 seconds lifetime
         this.age = 0;
 
-        // Create laser mesh
-        const geometry = new THREE.CapsuleGeometry(0.1, 1, 4, 8);
+        // Create laser mesh (using CylinderGeometry since CapsuleGeometry doesn't exist in Three.js r128)
+        const geometry = new THREE.CylinderGeometry(0.1, 0.1, 1, 8);
         const material = new THREE.MeshBasicMaterial({
             color: 0x00ff00,
             emissive: 0x00ff00,
@@ -182,6 +190,7 @@ class Laser {
         this.mesh.position.copy(position);
         this.mesh.rotation.x = Math.PI / 2;
         scene.add(this.mesh);
+        console.log('Laser mesh created and added to scene');
 
         // Add glow
         const glowGeometry = new THREE.SphereGeometry(0.3, 8, 8);
