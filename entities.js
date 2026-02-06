@@ -113,13 +113,9 @@ class PlayerShuttle {
         if (input.fire) {
             const timeSinceLastFire = currentTime - this.lastFireTime;
             if (timeSinceLastFire > this.fireRate) {
-                console.log('FIRING! Creating lasers');
                 this.lastFireTime = currentTime;
                 const lasers = this.createLaser();
-                console.log('Created', lasers ? lasers.length : 0, 'lasers');
                 return lasers;
-            } else {
-                console.log('Cooldown active:', timeSinceLastFire.toFixed(3), 'need', this.fireRate);
             }
         }
 
@@ -127,14 +123,12 @@ class PlayerShuttle {
     }
 
     createLaser() {
-        console.log('createLaser called! Position:', this.mesh.position.x, this.mesh.position.y);
         const lasers = [];
         const basePosition = this.mesh.position.clone();
         const direction = new THREE.Vector3(0, 1, 0);  // Shoot upward in the game plane
 
         if (this.weaponBoost || this.weaponLevel > 1) {
             // Triple shot
-            console.log('Creating triple shot');
             for (let i = -1; i <= 1; i++) {
                 const laser = new Laser(
                     basePosition.clone().add(new THREE.Vector3(i * 0.5, 0, 0)),
@@ -145,12 +139,10 @@ class PlayerShuttle {
             }
         } else {
             // Single shot
-            console.log('Creating single shot');
             const laser = new Laser(basePosition, direction, this.scene);
             lasers.push(laser);
         }
 
-        console.log('createLaser returning', lasers.length, 'lasers');
         return lasers;
     }
 
@@ -190,7 +182,6 @@ class Laser {
         this.mesh.position.copy(position);
         this.mesh.rotation.x = Math.PI / 2;
         scene.add(this.mesh);
-        console.log('Laser mesh created and added to scene');
 
         // Add glow
         const glowGeometry = new THREE.SphereGeometry(0.3, 8, 8);
@@ -343,7 +334,7 @@ class EnemyShip {
         this.mass = 1.5;
         this.maxSpeed = 30;  // Increased from 20 - now as fast as player!
         this.damage = 20;
-        this.currentWave = 1;  // Default to wave 1 (no shooting)
+        this.currentRound = 1;  // Default to round 1 (no shooting)
 
         // Create enemy ship
         const group = new THREE.Group();
@@ -410,8 +401,8 @@ class EnemyShip {
             // Look at player
             this.mesh.lookAt(this.target.mesh.position);
 
-            // Fire at player from further away (but not in wave 1)
-            if (this.currentWave > 1 &&  // Don't shoot in wave 1
+            // Fire at player from further away (but not in round 1)
+            if (this.currentRound > 1 &&  // Don't shoot in round 1
                 currentTime - this.lastFireTime > this.fireRate &&
                 distance < 40) {  // Increased from 30
 

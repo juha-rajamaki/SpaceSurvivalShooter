@@ -3,10 +3,19 @@
 class Game {
     constructor() {
         this.score = 0;
-        this.wave = 1;
+        this.round = 1;
+        this.maxRounds = 10;
         this.isRunning = false;
         this.isPaused = false;
         this.gameOver = false;
+
+        // Round-based game (10 rounds, 2 minutes each)
+        this.roundTime = 120; // 2 minutes per round
+        this.currentTime = 120; // Countdown for current round
+        this.enemyRespawnDelay = 20; // Seconds after enemies cleared
+        this.timeSinceEnemiesCleared = 0;
+        this.allEnemiesCleared = false;
+        this.gameWon = false;
 
         // Initialize Three.js
         this.initThreeJS();
@@ -44,8 +53,8 @@ class Game {
             boost: false
         };
 
-        // Wave configuration
-        this.waveConfig = {
+        // Round configuration
+        this.roundConfig = {
             asteroidCount: 3,
             enemyCount: 0,
             mineCount: 0,
@@ -146,7 +155,6 @@ class Game {
                 case ' ':
                     e.preventDefault();
                     this.input.fire = true;
-                    console.log('Space pressed! fire=true, isRunning=', this.isRunning, 'gameOver=', this.gameOver, 'isPaused=', this.isPaused);
                     break;
                 case 'shift':
                     this.input.boost = true;
@@ -234,8 +242,10 @@ class Game {
     initUI() {
         this.ui = {
             score: document.getElementById('score'),
-            wave: document.getElementById('wave'),
+            round: document.getElementById('round'),
+            timer: document.getElementById('timer'),
             healthFill: document.getElementById('health-fill'),
+            healthText: document.getElementById('health-text'),
             multiplier: document.getElementById('multiplier'),
             activePowerups: document.getElementById('active-powerups'),
             startScreen: document.getElementById('start-screen'),
@@ -252,14 +262,18 @@ class Game {
         // Start background music
         window.soundManager.startMusic();
         this.gameOver = false;
+        this.gameWon = false;
         this.score = 0;
-        this.wave = 1;
+        this.round = 1;
+        this.currentTime = this.roundTime; // Reset timer to 2 minutes
+        this.allEnemiesCleared = false;
+        this.timeSinceEnemiesCleared = 0;
 
         // Create player
         this.player = new PlayerShuttle(this.scene);
 
-        // Start first wave
-        this.startWave();
+        // Start first round
+        this.startRound();
 
         // Start game loop
         this.animate();
@@ -299,29 +313,29 @@ class Game {
         this.powerUpManager.reset();
     }
 
-    startWave() {
-        // Calculate wave difficulty - More action from the start!
-        this.waveConfig.asteroidCount = 5 + Math.floor(this.wave * 0.7);
+    startRound() {
+        // Calculate round difficulty - More action from the start!
+        this.roundConfig.asteroidCount = 5 + Math.floor(this.round * 0.7);
 
-        // Enemies from wave 1!
-        this.waveConfig.enemyCount = 2 + Math.floor(this.wave * 0.8);
+        // Enemies from round 1!
+        this.roundConfig.enemyCount = 2 + Math.floor(this.round * 0.8);
 
-        // Mines from wave 4
-        if (this.wave >= 4) {
-            this.waveConfig.mineCount = Math.floor((this.wave - 3) * 0.5) + 1;
+        // Mines from round 4
+        if (this.round >= 4) {
+            this.roundConfig.mineCount = Math.floor((this.round - 3) * 0.5) + 1;
         } else {
-            this.waveConfig.mineCount = 0;
+            this.roundConfig.mineCount = 0;
         }
 
-        // Black holes from wave 7
-        if (this.wave >= 7) {
-            this.waveConfig.blackHoleCount = Math.floor((this.wave - 6) * 0.3) + 1;
+        // Black holes from round 7
+        if (this.round >= 7) {
+            this.roundConfig.blackHoleCount = Math.floor((this.round - 6) * 0.3) + 1;
         } else {
-            this.waveConfig.blackHoleCount = 0;
+            this.roundConfig.blackHoleCount = 0;
         }
 
         // Spawn asteroids
-        for (let i = 0; i < this.waveConfig.asteroidCount; i++) {
+        for (let i = 0; i < this.roundConfig.asteroidCount; i++) {
             const position = new THREE.Vector3(
                 (Math.random() - 0.5) * this.bounds.width,
                 (Math.random() - 0.5) * this.bounds.height,
@@ -337,20 +351,20 @@ class Game {
         }
 
         // Spawn enemies
-        for (let i = 0; i < this.waveConfig.enemyCount; i++) {
-            const angle = (Math.PI * 2 * i) / this.waveConfig.enemyCount;
+        for (let i = 0; i < this.roundConfig.enemyCount; i++) {
+            const angle = (Math.PI * 2 * i) / this.roundConfig.enemyCount;
             const position = new THREE.Vector3(
                 Math.cos(angle) * 30,
                 Math.sin(angle) * 20,
                 0
             );
             const enemy = new EnemyShip(position, this.scene, this.player);
-            enemy.currentWave = this.wave;  // Pass wave info to enemy
+            enemy.currentRound = this.round;  // Pass round info to enemy
             this.enemies.push(enemy);
         }
 
         // Spawn mines
-        for (let i = 0; i < this.waveConfig.mineCount; i++) {
+        for (let i = 0; i < this.roundConfig.mineCount; i++) {
             const position = new THREE.Vector3(
                 (Math.random() - 0.5) * this.bounds.width * 0.7,
                 (Math.random() - 0.5) * this.bounds.height * 0.7,
@@ -360,7 +374,7 @@ class Game {
         }
 
         // Spawn black holes
-        for (let i = 0; i < this.waveConfig.blackHoleCount; i++) {
+        for (let i = 0; i < this.roundConfig.blackHoleCount; i++) {
             const position = new THREE.Vector3(
                 (Math.random() - 0.5) * this.bounds.width * 0.5,
                 (Math.random() - 0.5) * this.bounds.height * 0.5,
@@ -370,27 +384,6 @@ class Game {
         }
     }
 
-    checkWaveComplete() {
-        // Check if all threats are cleared (not just enemies and asteroids)
-        if (this.asteroids.length === 0 &&
-            this.enemies.length === 0 &&
-            this.mines.length === 0) {
-
-            console.log('Wave', this.wave, 'complete! Starting wave', this.wave + 1);
-            this.wave++;
-            this.ui.wave.textContent = this.wave;
-            window.soundManager.playWaveComplete();
-            this.startWave();
-
-            // Bonus points for completing wave
-            this.addScore(100 * this.wave);
-        } else {
-            // Debug: Show what's still remaining
-            if (this.enemies.length === 0 && (this.asteroids.length > 0 || this.mines.length > 0)) {
-                console.log('Enemies cleared but wave not complete. Remaining: asteroids=', this.asteroids.length, 'mines=', this.mines.length);
-            }
-        }
-    }
 
     togglePause() {
         if (!this.isRunning || this.gameOver) return;
@@ -402,15 +395,48 @@ class Game {
 
         const currentTime = Date.now() * 0.001;
 
+        // Update round timer
+        this.currentTime -= deltaTime;
+        if (this.currentTime <= 0) {
+            this.currentTime = 0;
+            this.endGame(); // Time ran out - player failed the round
+            return;
+        }
+
+        // Check for round completion and next round
+        if (this.enemies.length === 0) {
+            if (!this.allEnemiesCleared) {
+                this.allEnemiesCleared = true;
+                this.timeSinceEnemiesCleared = 0;
+            }
+
+            this.timeSinceEnemiesCleared += deltaTime;
+
+            if (this.timeSinceEnemiesCleared >= this.enemyRespawnDelay) {
+                // Move to next round
+                this.round++;
+
+                if (this.round > this.maxRounds) {
+                    this.winGame(); // Completed all 10 rounds!
+                    return;
+                }
+
+                // Reset timer for new round
+                this.currentTime = this.roundTime;
+                this.spawnEnemyRound();
+                this.allEnemiesCleared = false;
+            }
+        } else {
+            this.allEnemiesCleared = false;
+        }
+
         // Update player
         if (this.player) {
             // Handle player update and firing first to get acceleration
             const newLasers = this.player.update(deltaTime, this.input, currentTime);
             if (newLasers) {
-                console.log('Adding', newLasers.length, 'lasers to array. Total lasers:', this.lasers.length);
                 this.lasers.push(...newLasers);
                 window.soundManager.playLaser();
-                console.log('Lasers array now has', this.lasers.length, 'lasers');
             }
 
             // Update physics
@@ -538,9 +564,6 @@ class Game {
 
         // Update UI
         this.updateUI();
-
-        // Check wave complete
-        this.checkWaveComplete();
 
         // Rotate starfield
         if (this.stars) {
@@ -695,6 +718,24 @@ class Game {
         // Update health bar
         const healthPercent = (this.player.health / this.player.maxHealth) * 100;
         this.ui.healthFill.style.width = healthPercent + '%';
+        this.ui.healthText.textContent = `${Math.ceil(this.player.health)}/${this.player.maxHealth}`;
+
+        // Update round display
+        this.ui.round.textContent = `${this.round}/${this.maxRounds}`;
+
+        // Update timer display (M:SS format)
+        const minutes = Math.floor(this.currentTime / 60);
+        const seconds = Math.floor(this.currentTime % 60);
+        this.ui.timer.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+        // Change timer color when time is running out
+        if (this.currentTime < 30) {
+            this.ui.timer.style.color = '#ff0000'; // Red
+        } else if (this.currentTime < 60) {
+            this.ui.timer.style.color = '#ffaa00'; // Orange
+        } else {
+            this.ui.timer.style.color = '#ff00ff'; // Purple (default)
+        }
 
         // Update multiplier
         if (this.player.scoreMultiplier > 1) {
@@ -723,8 +764,12 @@ class Game {
 
         // Show game over screen
         this.ui.gameOver.classList.remove('hidden');
+        this.ui.gameOver.querySelector('h1').textContent = 'GAME OVER';
+        this.ui.gameOver.querySelector('h1').style.color = '#ff0000';
         this.ui.finalScore.textContent = this.score;
-        this.ui.finalWave.textContent = this.wave;
+
+        // Show round reached
+        this.ui.finalWave.textContent = `Round ${this.round}`;
 
         // Play game over sound and stop music
         window.soundManager.playGameOver();
@@ -738,6 +783,50 @@ class Game {
                 200
             );
             this.scene.remove(this.player.mesh);
+        }
+    }
+
+    winGame() {
+        this.gameOver = true;
+        this.gameWon = true;
+        this.isRunning = false;
+
+        // Show victory screen
+        this.ui.gameOver.classList.remove('hidden');
+        this.ui.gameOver.querySelector('h1').textContent = 'VICTORY!';
+        this.ui.gameOver.querySelector('h1').style.color = '#00ff00';
+        this.ui.finalScore.textContent = this.score;
+        this.ui.finalWave.textContent = `All ${this.maxRounds} Rounds Complete!`;
+
+        // Play victory sound and stop music
+        window.soundManager.playWaveComplete();
+        window.soundManager.stopMusic();
+    }
+
+    spawnEnemyRound() {
+        // Calculate number of enemies with difficulty scaling
+        const baseEnemies = 2;
+        const enemyCount = baseEnemies + Math.floor(this.round * 0.8);
+
+        // Spawn enemies in a circle pattern
+        for (let i = 0; i < enemyCount; i++) {
+            const angle = (Math.PI * 2 * i) / enemyCount;
+            const distance = 40 + Math.random() * 20; // Random distance
+            const position = new THREE.Vector3(
+                Math.cos(angle) * distance,
+                Math.sin(angle) * distance,
+                0
+            );
+
+            const enemy = new EnemyShip(position, this.scene, this.player);
+            enemy.currentRound = this.round;
+
+            // Difficulty scaling
+            enemy.maxSpeed = 30 + (this.round * 2); // +2 speed per round
+            enemy.fireRate = Math.max(0.3, 0.8 - (this.round * 0.05)); // Faster shooting
+            enemy.health = 50 + (this.round * 5); // +5 health per round
+
+            this.enemies.push(enemy);
         }
     }
 

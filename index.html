@@ -17,6 +17,7 @@
                     <span class="label">Health:</span>
                     <div id="health-bar">
                         <div id="health-fill"></div>
+                        <span id="health-text">100/100</span>
                     </div>
                 </div>
                 <div class="stat-item">
@@ -25,8 +26,12 @@
                     <span id="multiplier" class="hidden">x2</span>
                 </div>
                 <div class="stat-item">
-                    <span class="label">Wave:</span>
-                    <span id="wave">1</span>
+                    <span class="label">Round:</span>
+                    <span id="round">1/10</span>
+                </div>
+                <div class="stat-item">
+                    <span class="label">Time:</span>
+                    <span id="timer">2:00</span>
                 </div>
             </div>
 
@@ -47,7 +52,7 @@
         <div id="game-over" class="hidden">
             <h1>GAME OVER</h1>
             <p>Final Score: <span id="final-score">0</span></p>
-            <p>Waves Survived: <span id="final-wave">0</span></p>
+            <p>Rounds Completed: <span id="final-wave">0</span></p>
             <button id="restart-btn">Play Again</button>
         </div>
 
