@@ -130,6 +130,26 @@ class Game {
             if (e.key === ' ' || e.code === 'Space' || e.keyCode === 32) {
                 e.preventDefault();
                 this.input.fire = true;
+
+                // DIRECT TEST: Create laser immediately when space is pressed
+                if (this.isRunning && this.player && !this.gameOver) {
+                    console.log('DIRECT TEST: Space pressed, creating laser');
+                    console.log('Player position:', this.player.mesh.position.x, this.player.mesh.position.y);
+                    console.log('Lasers before:', this.lasers.length);
+
+                    try {
+                        const testLaser = new Laser(
+                            this.player.mesh.position.clone(),
+                            new THREE.Vector3(0, 1, 0),
+                            this.scene
+                        );
+                        this.lasers.push(testLaser);
+                        console.log('Lasers after:', this.lasers.length);
+                        console.log('DIRECT TEST: Success! Laser created');
+                    } catch (error) {
+                        console.error('DIRECT TEST: Failed to create laser:', error);
+                    }
+                }
                 return;
             }
 
@@ -262,6 +282,15 @@ class Game {
 
         // Create player
         this.player = new PlayerShuttle(this.scene);
+
+        // VERIFY: Create a static visible laser to test rendering
+        console.log('VERIFY: Creating test laser at 0, 5, 0');
+        const verifyLaser = new Laser(
+            new THREE.Vector3(0, 5, 0),
+            new THREE.Vector3(0, 0.1, 0),  // Very slow upward velocity
+            this.scene
+        );
+        this.lasers.push(verifyLaser);  // Add it so we can see it move
 
         // Start first wave
         this.startWave();
@@ -403,12 +432,15 @@ class Game {
 
         // Update player
         if (this.player) {
-            // Handle player update and firing first to get acceleration
-            const newLasers = this.player.update(deltaTime, this.input, currentTime);
-            if (newLasers && newLasers.length > 0) {
-                this.lasers.push(...newLasers);
-                window.soundManager.playLaser();
-            }
+            // DISABLED FOR TESTING - using direct laser creation instead
+            // const newLasers = this.player.update(deltaTime, this.input, currentTime);
+            // if (newLasers && newLasers.length > 0) {
+            //     this.lasers.push(...newLasers);
+            //     window.soundManager.playLaser();
+            // }
+
+            // Just update player without firing
+            this.player.update(deltaTime, this.input, currentTime);
 
             // Update physics
             this.physics.updateVelocity(this.player, this.player.acceleration, deltaTime);
