@@ -316,6 +316,24 @@ class PowerUpManager {
         return false; // No shield available or already active
     }
 
+    hasAmmoPowerUp() {
+        // Check if there's any ammo powerup in the world
+        return this.powerUps.some(p => p.type === 'ammo');
+    }
+
+    spawnEmergencyAmmo(playerPosition) {
+        // Spawn ammo crate near player when they're out of ammo
+        const angle = Math.random() * Math.PI * 2;
+        const distance = 15 + Math.random() * 10; // 15-25 units away
+        const position = new THREE.Vector3(
+            playerPosition.x + Math.cos(angle) * distance,
+            playerPosition.y + Math.sin(angle) * distance,
+            0
+        );
+
+        this.spawnPowerUpAt(position, 'ammo');
+    }
+
     getActivePowerUps() {
         return this.activePowerUps.map(p => ({
             type: p.type,

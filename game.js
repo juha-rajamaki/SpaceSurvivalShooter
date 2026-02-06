@@ -582,6 +582,11 @@ class Game {
             this.updatePowerUpUI();
         }
 
+        // Emergency ammo spawn - guarantee at least 1 ammo crate when player has no ammo
+        if (this.player.ammo === 0 && !this.powerUpManager.hasAmmoPowerUp()) {
+            this.powerUpManager.spawnEmergencyAmmo(this.player.mesh.position);
+        }
+
         // Update particle system
         this.particleSystem.update(deltaTime);
 
