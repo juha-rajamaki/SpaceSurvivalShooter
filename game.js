@@ -264,14 +264,6 @@ class Game {
         // Create player
         this.player = new PlayerShuttle(this.scene);
 
-        // TEST: Create a visible test object
-        const testGeometry = new THREE.BoxGeometry(5, 5, 5);
-        const testMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-        const testMesh = new THREE.Mesh(testGeometry, testMaterial);
-        testMesh.position.set(0, 10, 0);  // Above center
-        this.scene.add(testMesh);
-        console.error('TEST: Added red box to scene at position 0, 10, 0');
-
         // TEST: Auto-fire to verify system works
         setTimeout(() => {
             console.error('AUTO-FIRE TEST: Setting fire to true');
@@ -279,7 +271,7 @@ class Game {
             setTimeout(() => {
                 this.input.fire = false;
                 console.error('AUTO-FIRE TEST: Set fire back to false');
-            }, 100);
+            }, 300);  // Keep firing for 300ms
         }, 2000);  // 2 seconds after game start
 
         // Start first wave
