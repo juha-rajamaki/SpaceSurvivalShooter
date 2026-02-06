@@ -11,8 +11,8 @@ class Game {
         this.gameOver = false;
 
         // Round-based game (10 rounds, 2 minutes each)
-        this.roundTime = 120; // 2 minutes per round
-        this.currentTime = 120; // Countdown for current round
+        this.roundTime = 180; // 3 minutes per round
+        this.currentTime = 180; // Countdown for current round
         this.enemyRespawnDelay = 20; // Seconds after enemies cleared
         this.timeSinceEnemiesCleared = 0;
         this.allEnemiesCleared = false;
@@ -618,6 +618,11 @@ class Game {
                 this.player.shields = false;
             }
 
+            // Slow health regeneration (100 HP over 120 seconds ≈ 0.83 HP/s)
+            if (this.player.health < this.player.maxHealth) {
+                this.player.health = Math.min(this.player.health + (this.player.maxHealth / 120) * deltaTime, this.player.maxHealth);
+            }
+
             // Handle player update and firing first to get acceleration
             const newLasers = this.player.update(deltaTime, this.input, currentTime);
             if (newLasers) {
@@ -893,23 +898,34 @@ class Game {
             }
         }
 
-        // Player vs asteroids (only large+ asteroids deal damage)
-        this.asteroids.forEach(asteroid => {
+        // Player vs asteroids
+        for (let i = this.asteroids.length - 1; i >= 0; i--) {
+            const asteroid = this.asteroids[i];
             if (this.physics.checkCollision(this.player, asteroid)) {
                 this.physics.bounceObjects(this.player, asteroid);
                 // Small rock debris at collision point
                 const midpoint = this.player.mesh.position.clone()
                     .add(asteroid.mesh.position).multiplyScalar(0.5);
                 this.particleSystem.createDebris(midpoint, new THREE.Color(0.7, 0.5, 0.3), 10);
+
                 if (asteroid.size === 'huge') {
-                    this.damagePlayer(20);
+                    this.damagePlayer(80);
+                    // Huge asteroid breaks into large pieces on player collision
+                    this.particleSystem.createExplosion(asteroid.mesh.position, new THREE.Color(0.7, 0.4, 0.1), 80);
+                    window.soundManager.playExplosion('huge');
+                    const fragments = asteroid.break();
+                    this.asteroids.splice(i, 1);
+                    this.asteroids.push(...fragments);
                 } else if (asteroid.size === 'large') {
-                    this.damagePlayer(8);
+                    this.damagePlayer(60);
+                } else if (asteroid.size === 'medium') {
+                    this.damagePlayer(40);
                 } else {
-                    window.soundManager.playBump();
+                    this.damagePlayer(20);
                 }
+                window.soundManager.playBump();
             }
-        });
+        }
 
         // Player vs enemies (1 hit survives, 2 hits kills from full health)
         this.enemies.forEach(enemy => {
@@ -934,6 +950,11 @@ class Game {
     }
 
     damagePlayer(amount) {
+        // Invincibility frames — ignore damage for 0.5s after last hit
+        const now = performance.now();
+        if (this.lastDamageTime && (now - this.lastDamageTime) < 500) return;
+        this.lastDamageTime = now;
+
         if (this.player.takeDamage(amount)) {
             this.endGame();
         } else {
@@ -948,6 +969,25 @@ class Game {
                     }, 100);
                 }
             });
+        }
+
+        // Immediately update health bar
+        const healthPercent = (this.player.health / this.player.maxHealth) * 100;
+        const hFill = document.getElementById('health-fill');
+        const hText = document.getElementById('health-text');
+        if (hFill) hFill.style.width = healthPercent + '%';
+        if (hText) hText.textContent = `${Math.ceil(this.player.health)}/${this.player.maxHealth}`;
+
+        const vignette = document.getElementById('low-health-vignette');
+        if (this.player.health < 40) {
+            vignette.classList.remove('hidden', 'yellow');
+            vignette.classList.add('red');
+        } else if (this.player.health < 80) {
+            vignette.classList.remove('hidden', 'red');
+            vignette.classList.add('yellow');
+        } else {
+            vignette.classList.add('hidden');
+            vignette.classList.remove('yellow', 'red');
         }
     }
 
@@ -979,26 +1019,37 @@ class Game {
     updateUI() {
         // Update health bar
         const healthPercent = (this.player.health / this.player.maxHealth) * 100;
-        this.ui.healthFill.style.width = healthPercent + '%';
-        this.ui.healthText.textContent = `${Math.ceil(this.player.health)}/${this.player.maxHealth}`;
+        const hFill = document.getElementById('health-fill');
+        const hText = document.getElementById('health-text');
+        if (hFill) hFill.style.width = healthPercent + '%';
+        if (hText) hText.textContent = `${Math.ceil(this.player.health)}/${this.player.maxHealth}`;
 
         // Low health warning border
         const vignette = document.getElementById('low-health-vignette');
-        if (healthPercent <= 30) {
-            vignette.classList.remove('hidden');
+        if (this.player.health < 40) {
+            vignette.classList.remove('hidden', 'yellow');
+            vignette.classList.add('red');
+        } else if (this.player.health < 80) {
+            vignette.classList.remove('hidden', 'red');
+            vignette.classList.add('yellow');
         } else {
             vignette.classList.add('hidden');
+            vignette.classList.remove('yellow', 'red');
         }
 
         // Update ammo display
         this.ui.ammo.textContent = this.player.ammo;
         // Change color based on ammo level
+        const lowAmmo = document.getElementById('low-ammo-warning');
         if (this.player.ammo === 0) {
-            this.ui.ammo.style.color = '#ff0000'; // Red when empty
+            this.ui.ammo.style.color = '#ff0000';
+            if (lowAmmo) lowAmmo.classList.remove('hidden');
         } else if (this.player.ammo < 20) {
-            this.ui.ammo.style.color = '#ffaa00'; // Orange when low
+            this.ui.ammo.style.color = '#ffaa00';
+            if (lowAmmo) lowAmmo.classList.remove('hidden');
         } else {
-            this.ui.ammo.style.color = '#ffffff'; // White when normal
+            this.ui.ammo.style.color = '#ffa500';
+            if (lowAmmo) lowAmmo.classList.add('hidden');
         }
 
         // Update round display

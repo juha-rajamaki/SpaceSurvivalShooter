@@ -30,6 +30,11 @@ class SoundManager {
             this.musicGainNode.gain.value = this.musicVolume * this.masterVolume;
             this.musicGainNode.connect(this.audioContext.destination);
 
+            // Create master gain node for SFX
+            this.sfxGainNode = this.audioContext.createGain();
+            this.sfxGainNode.gain.value = this.sfxVolume * this.masterVolume;
+            this.sfxGainNode.connect(this.audioContext.destination);
+
             this.initialized = true;
             console.log('Sound system initialized');
 
@@ -55,6 +60,9 @@ class SoundManager {
 
             if (this.musicGainNode) {
                 this.musicGainNode.gain.value = this.musicVolume * this.masterVolume;
+            }
+            if (this.sfxGainNode) {
+                this.sfxGainNode.gain.value = this.sfxVolume * this.masterVolume;
             }
         }
     }
@@ -104,6 +112,9 @@ class SoundManager {
         if (this.musicGainNode) {
             this.musicGainNode.gain.value = this.musicVolume * this.masterVolume;
         }
+        if (this.sfxGainNode) {
+            this.sfxGainNode.gain.value = this.sfxVolume * this.masterVolume;
+        }
         this.saveSettings();
     }
 
@@ -116,13 +127,13 @@ class SoundManager {
         const gainNode = this.audioContext.createGain();
 
         oscillator.connect(gainNode);
-        gainNode.connect(this.audioContext.destination);
+        gainNode.connect(this.sfxGainNode);
 
         oscillator.type = 'sawtooth';
         oscillator.frequency.setValueAtTime(800, now);
         oscillator.frequency.exponentialRampToValueAtTime(200, now + 0.15);
 
-        gainNode.gain.setValueAtTime(this.sfxVolume * this.masterVolume * 0.3, now);
+        gainNode.gain.setValueAtTime(0.3, now);
         gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
 
         oscillator.start(now);
@@ -137,13 +148,13 @@ class SoundManager {
         const gainNode = this.audioContext.createGain();
 
         oscillator.connect(gainNode);
-        gainNode.connect(this.audioContext.destination);
+        gainNode.connect(this.sfxGainNode);
 
         oscillator.type = 'square';
         oscillator.frequency.setValueAtTime(600, now);
         oscillator.frequency.exponentialRampToValueAtTime(150, now + 0.2);
 
-        gainNode.gain.setValueAtTime(this.sfxVolume * this.masterVolume * 0.25, now);
+        gainNode.gain.setValueAtTime(0.3, now);
         gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
 
         oscillator.start(now);
@@ -174,27 +185,24 @@ class SoundManager {
 
         noise.connect(filter);
         filter.connect(gainNode);
-        gainNode.connect(this.audioContext.destination);
+        gainNode.connect(this.sfxGainNode);
 
         // Adjust parameters based on explosion size
         let duration = 0.3;
         let frequency = 100;
-        let volume = 0.5;
 
         if (size === 'small') {
             duration = 0.15;
             frequency = 200;
-            volume = 0.3;
         } else if (size === 'large') {
             duration = 0.5;
             frequency = 50;
-            volume = 0.7;
         }
 
         filter.frequency.setValueAtTime(frequency * 4, now);
         filter.frequency.exponentialRampToValueAtTime(frequency, now + duration);
 
-        gainNode.gain.setValueAtTime(this.sfxVolume * this.masterVolume * volume, now);
+        gainNode.gain.setValueAtTime(0.3, now);
         gainNode.gain.exponentialRampToValueAtTime(0.01, now + duration);
 
         noise.start(now);
@@ -205,13 +213,13 @@ class SoundManager {
         const thumpGain = this.audioContext.createGain();
 
         thump.connect(thumpGain);
-        thumpGain.connect(this.audioContext.destination);
+        thumpGain.connect(this.sfxGainNode);
 
         thump.type = 'sine';
         thump.frequency.setValueAtTime(60, now);
         thump.frequency.exponentialRampToValueAtTime(20, now + duration * 0.7);
 
-        thumpGain.gain.setValueAtTime(this.sfxVolume * this.masterVolume * volume * 0.5, now);
+        thumpGain.gain.setValueAtTime(0.15, now);
         thumpGain.gain.exponentialRampToValueAtTime(0.01, now + duration * 0.7);
 
         thump.start(now);
@@ -226,14 +234,14 @@ class SoundManager {
         const gainNode = this.audioContext.createGain();
 
         oscillator.connect(gainNode);
-        gainNode.connect(this.audioContext.destination);
+        gainNode.connect(this.sfxGainNode);
 
         oscillator.type = 'square';
         oscillator.frequency.setValueAtTime(200, now);
         oscillator.frequency.setValueAtTime(150, now + 0.05);
         oscillator.frequency.setValueAtTime(100, now + 0.1);
 
-        gainNode.gain.setValueAtTime(this.sfxVolume * this.masterVolume * 0.4, now);
+        gainNode.gain.setValueAtTime(0.3, now);
         gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
 
         oscillator.start(now);
@@ -248,13 +256,13 @@ class SoundManager {
         const gainNode = this.audioContext.createGain();
 
         oscillator.connect(gainNode);
-        gainNode.connect(this.audioContext.destination);
+        gainNode.connect(this.sfxGainNode);
 
         oscillator.type = 'sine';
         oscillator.frequency.setValueAtTime(120, now);
         oscillator.frequency.exponentialRampToValueAtTime(60, now + 0.1);
 
-        gainNode.gain.setValueAtTime(this.sfxVolume * this.masterVolume * 0.25, now);
+        gainNode.gain.setValueAtTime(0.3, now);
         gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
 
         oscillator.start(now);
@@ -287,9 +295,9 @@ class SoundManager {
 
         noise.connect(filter);
         filter.connect(gainNode);
-        gainNode.connect(this.audioContext.destination);
+        gainNode.connect(this.sfxGainNode);
 
-        gainNode.gain.setValueAtTime(this.sfxVolume * this.masterVolume * 0.4, now);
+        gainNode.gain.setValueAtTime(0.3, now);
         gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
 
         noise.start(now);
@@ -304,7 +312,7 @@ class SoundManager {
         const gainNode = this.audioContext.createGain();
 
         oscillator.connect(gainNode);
-        gainNode.connect(this.audioContext.destination);
+        gainNode.connect(this.sfxGainNode);
 
         oscillator.type = 'sine';
         oscillator.frequency.setValueAtTime(400, now);
@@ -312,8 +320,8 @@ class SoundManager {
         oscillator.frequency.setValueAtTime(800, now + 0.2);
         oscillator.frequency.exponentialRampToValueAtTime(1200, now + 0.3);
 
-        gainNode.gain.setValueAtTime(this.sfxVolume * this.masterVolume * 0.3, now);
-        gainNode.gain.setValueAtTime(this.sfxVolume * this.masterVolume * 0.3, now + 0.25);
+        gainNode.gain.setValueAtTime(0.3, now);
+        gainNode.gain.setValueAtTime(0.3, now + 0.25);
         gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
 
         oscillator.start(now);
@@ -330,7 +338,7 @@ class SoundManager {
 
         oscillator.connect(filter);
         filter.connect(gainNode);
-        gainNode.connect(this.audioContext.destination);
+        gainNode.connect(this.sfxGainNode);
 
         filter.type = 'bandpass';
         filter.frequency.value = 1000;
@@ -341,7 +349,7 @@ class SoundManager {
         oscillator.frequency.exponentialRampToValueAtTime(400, now + 0.1);
         oscillator.frequency.exponentialRampToValueAtTime(100, now + 0.2);
 
-        gainNode.gain.setValueAtTime(this.sfxVolume * this.masterVolume * 0.2, now);
+        gainNode.gain.setValueAtTime(0.3, now);
         gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
 
         oscillator.start(now);
@@ -358,7 +366,7 @@ class SoundManager {
 
         oscillator.connect(filter);
         filter.connect(gainNode);
-        gainNode.connect(this.audioContext.destination);
+        gainNode.connect(this.sfxGainNode);
 
         filter.type = 'lowpass';
         filter.frequency.value = 200;
@@ -367,8 +375,8 @@ class SoundManager {
         oscillator.frequency.setValueAtTime(30, now);
         oscillator.frequency.exponentialRampToValueAtTime(60, now + 0.2);
 
-        gainNode.gain.setValueAtTime(this.sfxVolume * this.masterVolume * 0.3, now);
-        gainNode.gain.setValueAtTime(this.sfxVolume * this.masterVolume * 0.3, now + 0.15);
+        gainNode.gain.setValueAtTime(0.3, now);
+        gainNode.gain.setValueAtTime(0.3, now + 0.15);
         gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
 
         oscillator.start(now);
@@ -385,14 +393,14 @@ class SoundManager {
             const gainNode = this.audioContext.createGain();
 
             oscillator.connect(gainNode);
-            gainNode.connect(this.audioContext.destination);
+            gainNode.connect(this.sfxGainNode);
 
             oscillator.type = 'square';
             const startTime = now + i * 0.2;
             oscillator.frequency.setValueAtTime(400 - i * 100, startTime);
             oscillator.frequency.exponentialRampToValueAtTime(100, startTime + 0.3);
 
-            gainNode.gain.setValueAtTime(this.sfxVolume * this.masterVolume * 0.3, startTime);
+            gainNode.gain.setValueAtTime(0.3, startTime);
             gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.3);
 
             oscillator.start(startTime);
@@ -411,13 +419,13 @@ class SoundManager {
             const gainNode = this.audioContext.createGain();
 
             oscillator.connect(gainNode);
-            gainNode.connect(this.audioContext.destination);
+            gainNode.connect(this.sfxGainNode);
 
             oscillator.type = 'sine';
             const startTime = now + i * 0.1;
             oscillator.frequency.setValueAtTime(freq, startTime);
 
-            gainNode.gain.setValueAtTime(this.sfxVolume * this.masterVolume * 0.3, startTime);
+            gainNode.gain.setValueAtTime(0.3, startTime);
             gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.3);
 
             oscillator.start(startTime);
