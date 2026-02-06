@@ -4,7 +4,9 @@ A 3D space survival shooter game built with Three.js featuring realistic particl
 
 ## Play the Game
 
-Simply open `index.html` in your web browser to play!
+🎮 **[Play Now on GitHub Pages](https://juha-rajamaki.github.io/SpaceSurvivalShooter/)**
+
+Or download and open `index.html` in your web browser to play locally!
 
 ## Features
 
