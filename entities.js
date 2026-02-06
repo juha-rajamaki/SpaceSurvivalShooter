@@ -167,10 +167,10 @@ class Laser {
         this.age = 0;
 
         // Create laser mesh
-        const geometry = new THREE.CapsuleGeometry(0.1, 1.5, 4, 8);
-        const material = new THREE.MeshPhongMaterial({
-            color: 0x00ffff,
-            emissive: 0x00ffff,
+        const geometry = new THREE.CapsuleGeometry(0.1, 1, 4, 8);
+        const material = new THREE.MeshBasicMaterial({
+            color: 0x00ff00,
+            emissive: 0x00ff00,
             emissiveIntensity: 2
         });
         this.mesh = new THREE.Mesh(geometry, material);
@@ -181,7 +181,7 @@ class Laser {
         // Add glow
         const glowGeometry = new THREE.SphereGeometry(0.3, 8, 8);
         const glowMaterial = new THREE.MeshBasicMaterial({
-            color: 0x00ffff,
+            color: 0x00ff00,
             transparent: true,
             opacity: 0.3
         });

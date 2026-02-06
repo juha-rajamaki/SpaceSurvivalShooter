@@ -130,15 +130,6 @@ class Game {
             if (e.key === ' ' || e.code === 'Space' || e.keyCode === 32) {
                 e.preventDefault();
                 this.input.fire = true;
-
-                // Also trigger immediate laser creation (works around timing issues)
-                if (this.isRunning && this.player && !this.gameOver && !this.isPaused) {
-                    const lasers = this.player.createLaser();
-                    if (lasers && lasers.length > 0) {
-                        this.lasers.push(...lasers);
-                        window.soundManager.playLaser();
-                    }
-                }
                 return;
             }
 
@@ -414,7 +405,7 @@ class Game {
         if (this.player) {
             // Handle player update and firing first to get acceleration
             const newLasers = this.player.update(deltaTime, this.input, currentTime);
-            if (newLasers && newLasers.length > 0) {
+            if (newLasers) {
                 this.lasers.push(...newLasers);
                 window.soundManager.playLaser();
             }
