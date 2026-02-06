@@ -267,6 +267,16 @@ class Game {
         // Create player
         this.player = new PlayerShuttle(this.scene);
 
+        // TEST: Create a laser immediately to verify the system works
+        console.log('TEST: Creating test laser at game start');
+        const testLaser = new Laser(
+            new THREE.Vector3(0, 0, 0),  // Center of screen
+            new THREE.Vector3(0, 1, 0),  // Upward
+            this.scene
+        );
+        this.lasers.push(testLaser);
+        console.log('TEST: Test laser created and added to scene');
+
         // Start first wave
         this.startWave();
 
