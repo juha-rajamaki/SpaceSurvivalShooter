@@ -111,8 +111,11 @@ class PlayerShuttle {
 
         // Handle firing
         if (input.fire && currentTime - this.lastFireTime > this.fireRate) {
+            console.log('Creating lasers at time:', currentTime);
             this.lastFireTime = currentTime;
             return this.createLaser();
+        } else if (input.fire) {
+            console.log('Fire pressed but cooldown active. Time since last fire:', currentTime - this.lastFireTime, 'Required:', this.fireRate);
         }
 
         return null;

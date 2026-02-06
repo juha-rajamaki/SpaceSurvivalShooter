@@ -146,6 +146,7 @@ class Game {
                 case ' ':
                     e.preventDefault();
                     this.input.fire = true;
+                    console.log('Space pressed! Input.fire =', this.input.fire, 'isRunning =', this.isRunning);
                     break;
                 case 'shift':
                     this.input.boost = true;
@@ -394,6 +395,7 @@ class Game {
             // Handle player update and firing first to get acceleration
             const newLasers = this.player.update(deltaTime, this.input, currentTime);
             if (newLasers) {
+                console.log('New lasers created:', newLasers.length);
                 this.lasers.push(...newLasers);
                 window.soundManager.playLaser();
             }
