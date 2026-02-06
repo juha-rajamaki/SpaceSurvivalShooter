@@ -295,6 +295,14 @@ class Game {
         // Start first round
         this.startRound();
 
+        // Spawn initial ammo crate at start of game
+        const initialAmmoPos = new THREE.Vector3(
+            (Math.random() - 0.5) * 60,
+            (Math.random() - 0.5) * 40,
+            0
+        );
+        this.powerUpManager.spawnPowerUpAt(initialAmmoPos, 'ammo');
+
         // Start game loop
         this.animate();
     }
@@ -590,8 +598,8 @@ class Game {
             this.updatePowerUpUI();
         }
 
-        // Emergency ammo spawn - guarantee at least 1 ammo crate when player has no ammo
-        if (this.player.ammo === 0 && !this.powerUpManager.hasAmmoPowerUp()) {
+        // Always ensure at least 1 ammo crate exists in the world
+        if (!this.powerUpManager.hasAmmoPowerUp()) {
             this.powerUpManager.spawnEmergencyAmmo(this.player.mesh.position);
         }
 

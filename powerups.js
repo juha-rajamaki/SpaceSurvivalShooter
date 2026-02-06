@@ -257,14 +257,14 @@ class PowerUpManager {
         let type;
         if (random < 0.1) {
             type = 'weapon';  // 10% chance
-        } else if (random < 0.25) {
-            type = 'shield';   // 15% chance
-        } else if (random < 0.4) {
-            type = 'speed';    // 15% chance
-        } else if (random < 0.65) {
-            type = 'ammo';     // 25% chance
+        } else if (random < 0.2) {
+            type = 'shield';   // 10% chance
+        } else if (random < 0.3) {
+            type = 'speed';    // 10% chance
+        } else if (random < 0.6) {
+            type = 'ammo';     // 30% chance - increased
         } else {
-            type = 'score';    // 35% chance
+            type = 'score';    // 40% chance
         }
 
         const position = new THREE.Vector3(
@@ -324,9 +324,9 @@ class PowerUpManager {
     }
 
     spawnEmergencyAmmo(playerPosition) {
-        // Spawn ammo crate near player when they're out of ammo
+        // Spawn ammo crate near player in visible range
         const angle = Math.random() * Math.PI * 2;
-        const distance = 15 + Math.random() * 10; // 15-25 units away
+        const distance = 10 + Math.random() * 15; // 10-25 units away (closer)
         const position = new THREE.Vector3(
             playerPosition.x + Math.cos(angle) * distance,
             playerPosition.y + Math.sin(angle) * distance,
