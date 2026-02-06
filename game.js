@@ -3,6 +3,7 @@
 class Game {
     constructor() {
         this.score = 0;
+        this.highScore = this.loadHighScore();
         this.round = 1;
         this.maxRounds = 10;
         this.isRunning = false;
@@ -257,8 +258,21 @@ class Game {
             startScreen: document.getElementById('start-screen'),
             gameOver: document.getElementById('game-over'),
             finalScore: document.getElementById('final-score'),
-            finalWave: document.getElementById('final-wave')
+            finalWave: document.getElementById('final-wave'),
+            highScore: document.getElementById('high-score')
         };
+
+        // Display high score on start screen
+        this.ui.highScore.textContent = this.highScore;
+    }
+
+    loadHighScore() {
+        const saved = localStorage.getItem('spaceShooterHighScore');
+        return saved ? parseInt(saved, 10) : 0;
+    }
+
+    saveHighScore() {
+        localStorage.setItem('spaceShooterHighScore', this.highScore.toString());
     }
 
     startGame() {
@@ -809,6 +823,13 @@ class Game {
         this.gameOver = true;
         this.isRunning = false;
 
+        // Update high score if current score is higher
+        if (this.score > this.highScore) {
+            this.highScore = this.score;
+            this.saveHighScore();
+            this.ui.highScore.textContent = this.highScore;
+        }
+
         // Show game over screen
         this.ui.gameOver.classList.remove('hidden');
         this.ui.gameOver.querySelector('h1').textContent = 'GAME OVER';
@@ -837,6 +858,13 @@ class Game {
         this.gameOver = true;
         this.gameWon = true;
         this.isRunning = false;
+
+        // Update high score if current score is higher
+        if (this.score > this.highScore) {
+            this.highScore = this.score;
+            this.saveHighScore();
+            this.ui.highScore.textContent = this.highScore;
+        }
 
         // Show victory screen
         this.ui.gameOver.classList.remove('hidden');

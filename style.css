@@ -155,11 +155,27 @@ body {
 
 #start-screen h1 {
     font-size: 48px;
-    margin-bottom: 30px;
+    margin-bottom: 20px;
     background: linear-gradient(45deg, #00ffff, #ff00ff);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+}
+
+#high-score-display {
+    margin-bottom: 20px;
+}
+
+#high-score-display p {
+    font-size: 24px;
+    color: #ffff00;
+    font-weight: bold;
+    text-shadow: 0 0 10px rgba(255, 255, 0, 0.8);
+}
+
+#high-score {
+    color: #00ff00;
+    font-size: 28px;
 }
 
 .controls {
