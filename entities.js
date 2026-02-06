@@ -110,17 +110,9 @@ class PlayerShuttle {
         }
 
         // Handle firing
-        if (input.fire) {
-            const timeSinceLastFire = currentTime - this.lastFireTime;
-            console.warn('PLAYER: Fire pressed! Time since last:', timeSinceLastFire, 'Required:', this.fireRate);
-
-            if (timeSinceLastFire > this.fireRate) {
-                console.warn('PLAYER: FIRING!');
-                this.lastFireTime = currentTime;
-                const lasers = this.createLaser();
-                console.warn('PLAYER: Created', lasers.length, 'lasers');
-                return lasers;
-            }
+        if (input.fire && currentTime - this.lastFireTime > this.fireRate) {
+            this.lastFireTime = currentTime;
+            return this.createLaser();
         }
 
         return null;
@@ -171,25 +163,26 @@ class Laser {
         this.radius = 0.2;
         this.speed = 80;
         this.damage = 35;  // Increased from 25 - more effective!
-        this.lifetime = 5;  // Increased from 2 to 5 seconds
+        this.lifetime = 3;  // 3 seconds lifetime
         this.age = 0;
 
-        // Create laser mesh - BIGGER FOR TESTING
-        const geometry = new THREE.BoxGeometry(1, 3, 1);  // Big box for visibility
+        // Create laser mesh
+        const geometry = new THREE.CapsuleGeometry(0.2, 2, 4, 8);
         const material = new THREE.MeshBasicMaterial({
-            color: 0xff00ff  // Bright magenta for maximum visibility
+            color: 0x00ffff,
+            emissive: 0x00ffff
         });
         this.mesh = new THREE.Mesh(geometry, material);
         this.mesh.position.copy(position);
+        this.mesh.rotation.x = Math.PI / 2;
         scene.add(this.mesh);
-        console.error('LASER CREATED at position:', position.x, position.y, position.z);
 
         // Add glow
-        const glowGeometry = new THREE.SphereGeometry(0.4, 8, 8);
+        const glowGeometry = new THREE.SphereGeometry(0.5, 8, 8);
         const glowMaterial = new THREE.MeshBasicMaterial({
             color: 0x00ffff,
             transparent: true,
-            opacity: 0.3
+            opacity: 0.4
         });
         this.glow = new THREE.Mesh(glowGeometry, glowMaterial);
         this.mesh.add(this.glow);

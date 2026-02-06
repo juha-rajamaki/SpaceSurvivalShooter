@@ -369,11 +369,11 @@ class SoundManager {
         });
     }
 
-    // Background music generator
+    // Background music generator - DRUM AND BASS STYLE
     startMusic() {
         if (!this.enabled || !this.musicEnabled || !this.audioContext || this.currentMusicLoop) return;
 
-        // Simple ambient space music using oscillators
+        // Drum and Bass music at 174 BPM
         const playMusicLoop = () => {
             if (!this.enabled || !this.musicEnabled) {
                 this.currentMusicLoop = null;
@@ -381,85 +381,150 @@ class SoundManager {
             }
 
             const now = this.audioContext.currentTime;
-            const measureLength = 2; // 2 seconds per measure
+            const barLength = 1.38; // ~174 BPM (60/174 * 4 beats)
 
-            // Bass line
-            const bassFreqs = [55, 55, 62, 49]; // A1, A1, B1, G1
+            // KICK DRUM - "Amen break" style pattern
+            const kickTimes = [0, 0.345, 0.862, 1.035]; // Syncopated pattern
+            kickTimes.forEach(time => {
+                const kickOsc = this.audioContext.createOscillator();
+                const kickGain = this.audioContext.createGain();
+                const kickPitch = this.audioContext.createOscillator();
+                const kickPitchGain = this.audioContext.createGain();
+
+                kickOsc.type = 'sine';
+                kickOsc.frequency.value = 60;
+
+                kickPitch.type = 'sine';
+                kickPitch.frequency.value = 60;
+
+                const startTime = now + time;
+
+                // Pitch envelope
+                kickPitch.frequency.setValueAtTime(150, startTime);
+                kickPitch.frequency.exponentialRampToValueAtTime(60, startTime + 0.02);
+
+                kickPitchGain.gain.setValueAtTime(50, startTime);
+                kickPitchGain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.02);
+
+                kickPitch.connect(kickPitchGain);
+                kickPitchGain.connect(kickOsc.frequency);
+
+                kickOsc.connect(kickGain);
+                kickGain.connect(this.musicGainNode);
+
+                kickGain.gain.setValueAtTime(0.6, startTime);
+                kickGain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.15);
+
+                kickOsc.start(startTime);
+                kickOsc.stop(startTime + 0.15);
+                kickPitch.start(startTime);
+                kickPitch.stop(startTime + 0.02);
+            });
+
+            // SNARE - On 2 and 4
+            [0.345, 1.035].forEach(time => {
+                const noise = this.audioContext.createBufferSource();
+                const noiseBuffer = this.audioContext.createBuffer(1, 4410, 44100); // 0.1 second
+                const output = noiseBuffer.getChannelData(0);
+
+                for (let i = 0; i < 4410; i++) {
+                    output[i] = Math.random() * 2 - 1;
+                }
+
+                noise.buffer = noiseBuffer;
+
+                const snareFilter = this.audioContext.createBiquadFilter();
+                snareFilter.type = 'highpass';
+                snareFilter.frequency.value = 200;
+
+                const snareGain = this.audioContext.createGain();
+
+                noise.connect(snareFilter);
+                snareFilter.connect(snareGain);
+                snareGain.connect(this.musicGainNode);
+
+                const startTime = now + time;
+
+                snareGain.gain.setValueAtTime(0.3, startTime);
+                snareGain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.1);
+
+                noise.start(startTime);
+                noise.stop(startTime + 0.1);
+            });
+
+            // HI-HAT - Rapid 16th notes
+            for (let i = 0; i < 16; i++) {
+                const hihatTime = now + (i * barLength / 16);
+                const noise = this.audioContext.createBufferSource();
+                const noiseBuffer = this.audioContext.createBuffer(1, 1000, 44100);
+                const output = noiseBuffer.getChannelData(0);
+
+                for (let j = 0; j < 1000; j++) {
+                    output[j] = Math.random() * 2 - 1;
+                }
+
+                noise.buffer = noiseBuffer;
+
+                const hihatFilter = this.audioContext.createBiquadFilter();
+                hihatFilter.type = 'highpass';
+                hihatFilter.frequency.value = 8000;
+
+                const hihatGain = this.audioContext.createGain();
+
+                noise.connect(hihatFilter);
+                hihatFilter.connect(hihatGain);
+                hihatGain.connect(this.musicGainNode);
+
+                // Accent pattern
+                const volume = (i % 4 === 0) ? 0.15 : 0.08;
+
+                hihatGain.gain.setValueAtTime(volume, hihatTime);
+                hihatGain.gain.exponentialRampToValueAtTime(0.01, hihatTime + 0.02);
+
+                noise.start(hihatTime);
+                noise.stop(hihatTime + 0.02);
+            }
+
+            // BASS LINE - Deep sub bass
             const bassOsc = this.audioContext.createOscillator();
             const bassGain = this.audioContext.createGain();
             const bassFilter = this.audioContext.createBiquadFilter();
 
-            bassOsc.type = 'sine';
+            bassOsc.type = 'sawtooth';
             bassFilter.type = 'lowpass';
-            bassFilter.frequency.value = 200;
+            bassFilter.frequency.value = 100;
+            bassFilter.Q.value = 10;
 
             bassOsc.connect(bassFilter);
             bassFilter.connect(bassGain);
             bassGain.connect(this.musicGainNode);
 
-            // Program bass pattern
-            bassFreqs.forEach((freq, i) => {
-                const time = now + i * 0.5;
+            // Reese bass pattern
+            const bassPattern = [41.2, 41.2, 46.2, 38.9]; // E1, E1, F#1, D1
+            bassPattern.forEach((freq, i) => {
+                const time = now + (i * barLength / 4);
                 bassOsc.frequency.setValueAtTime(freq, time);
             });
 
-            bassGain.gain.setValueAtTime(0.4, now);
-            bassGain.gain.setValueAtTime(0.4, now + measureLength - 0.1);
-            bassGain.gain.exponentialRampToValueAtTime(0.01, now + measureLength);
+            // Add wobble
+            const lfo = this.audioContext.createOscillator();
+            const lfoGain = this.audioContext.createGain();
+            lfo.frequency.value = 2; // 2Hz wobble
+            lfoGain.gain.value = 20;
+            lfo.connect(lfoGain);
+            lfoGain.connect(bassFilter.frequency);
+
+            bassGain.gain.setValueAtTime(0.3, now);
+            bassGain.gain.setValueAtTime(0.3, now + barLength - 0.05);
+            bassGain.gain.exponentialRampToValueAtTime(0.01, now + barLength);
 
             bassOsc.start(now);
-            bassOsc.stop(now + measureLength);
-
-            // Ambient pad
-            const padOsc = this.audioContext.createOscillator();
-            const padGain = this.audioContext.createGain();
-            const padFilter = this.audioContext.createBiquadFilter();
-
-            padOsc.type = 'triangle';
-            padFilter.type = 'lowpass';
-            padFilter.frequency.value = 800;
-
-            padOsc.connect(padFilter);
-            padFilter.connect(padGain);
-            padGain.connect(this.musicGainNode);
-
-            // Slowly modulate pad frequency for ambient effect
-            padOsc.frequency.setValueAtTime(220, now); // A3
-            padOsc.frequency.exponentialRampToValueAtTime(247, now + measureLength/2); // B3
-            padOsc.frequency.exponentialRampToValueAtTime(220, now + measureLength); // back to A3
-
-            padGain.gain.setValueAtTime(0, now);
-            padGain.gain.linearRampToValueAtTime(0.15, now + 0.1);
-            padGain.gain.setValueAtTime(0.15, now + measureLength - 0.2);
-            padGain.gain.linearRampToValueAtTime(0, now + measureLength);
-
-            padOsc.start(now);
-            padOsc.stop(now + measureLength);
-
-            // Arpeggio
-            const arpNotes = [440, 554, 659, 554]; // A4, C#5, E5, C#5
-            arpNotes.forEach((freq, i) => {
-                const arpOsc = this.audioContext.createOscillator();
-                const arpGain = this.audioContext.createGain();
-
-                arpOsc.type = 'sine';
-                arpOsc.connect(arpGain);
-                arpGain.connect(this.musicGainNode);
-
-                const startTime = now + i * 0.25;
-                arpOsc.frequency.setValueAtTime(freq, startTime);
-
-                arpGain.gain.setValueAtTime(0, startTime);
-                arpGain.gain.linearRampToValueAtTime(0.1, startTime + 0.05);
-                arpGain.gain.setValueAtTime(0.1, startTime + 0.15);
-                arpGain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.25);
-
-                arpOsc.start(startTime);
-                arpOsc.stop(startTime + 0.25);
-            });
+            bassOsc.stop(now + barLength);
+            lfo.start(now);
+            lfo.stop(now + barLength);
 
             // Schedule next loop
-            this.currentMusicLoop = setTimeout(playMusicLoop, measureLength * 1000);
+            this.currentMusicLoop = setTimeout(playMusicLoop, barLength * 1000);
         };
 
         playMusicLoop();

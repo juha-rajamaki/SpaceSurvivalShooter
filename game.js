@@ -130,7 +130,6 @@ class Game {
             if (e.key === ' ' || e.code === 'Space' || e.keyCode === 32) {
                 e.preventDefault();
                 this.input.fire = true;
-                console.warn('SPACE PRESSED! Fire is now:', this.input.fire);
                 return;
             }
 
@@ -263,16 +262,6 @@ class Game {
 
         // Create player
         this.player = new PlayerShuttle(this.scene);
-
-        // TEST: Auto-fire to verify system works
-        setTimeout(() => {
-            console.error('AUTO-FIRE TEST: Setting fire to true');
-            this.input.fire = true;
-            setTimeout(() => {
-                this.input.fire = false;
-                console.error('AUTO-FIRE TEST: Set fire back to false');
-            }, 300);  // Keep firing for 300ms
-        }, 2000);  // 2 seconds after game start
 
         // Start first wave
         this.startWave();
@@ -414,15 +403,9 @@ class Game {
 
         // Update player
         if (this.player) {
-            // Debug input state
-            if (this.input.fire) {
-                console.warn('UPDATE: Fire button is pressed!');
-            }
-
             // Handle player update and firing first to get acceleration
             const newLasers = this.player.update(deltaTime, this.input, currentTime);
-            if (newLasers) {
-                console.warn('UPDATE: Created', newLasers.length, 'new lasers!');
+            if (newLasers && newLasers.length > 0) {
                 this.lasers.push(...newLasers);
                 window.soundManager.playLaser();
             }
