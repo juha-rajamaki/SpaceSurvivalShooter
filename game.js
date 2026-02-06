@@ -335,7 +335,7 @@ class Game {
 
     startRound() {
         // Calculate round difficulty - More action from the start!
-        this.roundConfig.asteroidCount = 5 + Math.floor(this.round * 0.7);
+        this.roundConfig.asteroidCount = 12 + Math.floor(this.round * 1.2);
 
         // Enemies from round 1!
         this.roundConfig.enemyCount = 2 + Math.floor(this.round * 0.8);
@@ -364,8 +364,16 @@ class Game {
 
             // Don't spawn too close to player
             if (position.length() > 10) {
-                const sizes = ['large', 'medium', 'small'];
-                const size = sizes[Math.floor(Math.random() * sizes.length)];
+                // Weight asteroid sizes to favor large asteroids
+                const random = Math.random();
+                let size;
+                if (random < 0.5) {
+                    size = 'large';    // 50% chance
+                } else if (random < 0.8) {
+                    size = 'medium';   // 30% chance
+                } else {
+                    size = 'small';    // 20% chance
+                }
                 this.asteroids.push(new Asteroid(position, size, this.scene));
             }
         }
