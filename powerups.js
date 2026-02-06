@@ -13,7 +13,8 @@ class PowerUp {
             weapon: { color: 0xff0000, icon: '🔫', duration: 45 },
             speed: { color: 0xffff00, icon: '⚡', duration: 10 },
             score: { color: 0x00ff00, icon: '⭐', scoreValue: 150 },
-            ammo: { color: 0xffaa00, icon: '💥', ammoValue: 100 },
+            ammo: { color: 0xffaa00, icon: '💥', ammoValue: 200 },
+            bigammo: { color: 0xff6600, icon: '💥', ammoValue: 500 },
             health: { color: 0xff00ff, icon: '❤️' },
             dualweapon: { color: 0xff4400, icon: '🔥' },
             missile: { color: 0xff2200, icon: '🚀', missileCount: 5 }
@@ -62,6 +63,50 @@ class PowerUp {
             this.core = null;
             this.stripe1 = null;
             this.stripe2 = null;
+        } else if (type === 'bigammo') {
+            // Big ammo crate - larger, brighter, 3 stripes
+            this.radius = 1.2;
+            const boxGeometry = new THREE.BoxGeometry(1.4, 1.4, 1.4);
+            const boxMaterial = new THREE.MeshPhongMaterial({
+                color: 0x666666,
+                emissive: 0xff4400,
+                emissiveIntensity: 0.4,
+                shininess: 120,
+                specular: 0xffffff
+            });
+            this.mesh = new THREE.Mesh(boxGeometry, boxMaterial);
+            this.mesh.position.copy(position);
+
+            // Three warning stripes
+            const stripeGeometry = new THREE.BoxGeometry(1.45, 0.2, 1.45);
+            const stripeMaterial = new THREE.MeshBasicMaterial({
+                color: this.config.color,
+                transparent: true,
+                opacity: 0.9
+            });
+            this.stripe1 = new THREE.Mesh(stripeGeometry, stripeMaterial);
+            this.stripe1.position.y = 0.35;
+            this.mesh.add(this.stripe1);
+
+            this.stripe2 = new THREE.Mesh(stripeGeometry, stripeMaterial);
+            this.stripe2.position.y = 0;
+            this.mesh.add(this.stripe2);
+
+            this.stripe3 = new THREE.Mesh(stripeGeometry, stripeMaterial);
+            this.stripe3.position.y = -0.35;
+            this.mesh.add(this.stripe3);
+
+            // Stronger glow
+            const glowGeometry = new THREE.SphereGeometry(1.0, 16, 16);
+            const glowMaterial = new THREE.MeshBasicMaterial({
+                color: this.config.color,
+                transparent: true,
+                opacity: 0.25
+            });
+            this.glow = new THREE.Mesh(glowGeometry, glowMaterial);
+            this.mesh.add(this.glow);
+
+            this.core = null;
         } else if (type === 'ammo') {
             // Create metal ammo box
             const boxGeometry = new THREE.BoxGeometry(0.8, 0.8, 0.8);
@@ -148,7 +193,7 @@ class PowerUp {
         this.time += deltaTime;
 
         // Rotation - slower for ammo boxes
-        if (this.type === 'ammo') {
+        if (this.type === 'ammo' || this.type === 'bigammo') {
             this.mesh.rotation.y += this.rotationSpeed * 0.3 * deltaTime;
         } else {
             this.mesh.rotation.y += this.rotationSpeed * deltaTime;
@@ -162,11 +207,12 @@ class PowerUp {
         const pulse = Math.sin(this.time * 3) * 0.2 + 1;
         this.glow.scale.setScalar(pulse);
 
-        if (this.type === 'ammo') {
+        if (this.type === 'ammo' || this.type === 'bigammo') {
             // Pulsing stripes for ammo boxes
             const stripePulse = Math.sin(this.time * 4) * 0.3 + 0.7;
             if (this.stripe1) this.stripe1.material.opacity = stripePulse;
             if (this.stripe2) this.stripe2.material.opacity = stripePulse;
+            if (this.stripe3) this.stripe3.material.opacity = stripePulse;
         } else {
             this.mesh.material.emissiveIntensity = 0.5 + Math.sin(this.time * 4) * 0.3;
         }
@@ -188,6 +234,16 @@ class PowerUp {
                 };
 
             case 'weapon':
+                if (player.dualWeapon) {
+                    // Already has 6-shot — upgrade to 8-shot with diagonals
+                    player.octoWeapon = true;
+                    player.fireRate = 0.08;
+                    player.ammo = Math.min(player.ammo + 100, player.maxAmmo);
+                    return {
+                        message: '8-SHOT SPREAD +100 AMMO',
+                        type: 'octoweapon'
+                    };
+                }
                 if (player.weaponBoost) {
                     // Already has triple — upgrade to 6-shot dual fire
                     player.dualWeapon = true;
@@ -225,6 +281,7 @@ class PowerUp {
                 };
 
             case 'ammo':
+            case 'bigammo':
                 // Instant ammo refill - no duration needed
                 player.ammo = Math.min(player.ammo + this.config.ammoValue, player.maxAmmo);
                 return {
@@ -242,6 +299,16 @@ class PowerUp {
                 };
 
             case 'dualweapon':
+                if (player.dualWeapon) {
+                    // Already has 6-shot — upgrade to 8-shot
+                    player.octoWeapon = true;
+                    player.fireRate = 0.08;
+                    player.ammo = Math.min(player.ammo + 100, player.maxAmmo);
+                    return {
+                        message: '8-SHOT SPREAD +100 AMMO',
+                        type: 'octoweapon'
+                    };
+                }
                 // Permanent 6-shot (triple both directions)
                 player.weaponBoost = true;
                 player.dualWeapon = true;
@@ -337,8 +404,8 @@ class PowerUpManager {
         let type;
 
         // Build available types based on current round
-        if (this.currentRound >= 7 && random < 0.08) {
-            type = 'missile';      // 8% chance (R7+)
+        if (this.currentRound >= 6 && random < 0.08) {
+            type = 'missile';      // 8% chance (R6+)
         } else if (this.currentRound >= 5 && random < 0.12) {
             type = 'dualweapon';   // ~4% chance (R5+)
         } else if (random < 0.10) {
@@ -349,8 +416,10 @@ class PowerUpManager {
             type = 'shield';       // 3% chance
         } else if (random < 0.33) {
             type = 'speed';        // 10% chance
-        } else if (random < 0.58) {
-            type = 'ammo';         // 25% chance
+        } else if (random < 0.61125) {
+            type = 'ammo';         // 28.125% chance (3/4 of ammo)
+        } else if (random < 0.705) {
+            type = 'bigammo';      // 9.375% chance (1/4 of ammo)
         } else {
             type = 'score';        // rest
         }

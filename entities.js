@@ -102,6 +102,7 @@ class PlayerShuttle {
         this.speedBoost = false;
         this.weaponBoost = false;
         this.dualWeapon = false; // 6-shot (triple both directions)
+        this.octoWeapon = false; // 8-shot (6-shot + 2 diagonal)
         this.hasMissiles = false;
         this.missiles = 0;
         this.maxMissiles = 10;
@@ -193,7 +194,19 @@ class PlayerShuttle {
         const dirUp = new THREE.Vector3(0, 1, 0);
         const dirDown = new THREE.Vector3(0, -1, 0);
 
-        if (this.dualWeapon) {
+        if (this.octoWeapon) {
+            // 8-shot: triple forward + triple backward + 2 diagonal
+            for (let i = -1; i <= 1; i++) {
+                lasers.push(new Laser(basePosition.clone().add(new THREE.Vector3(i * 0.5, 0, 0)), dirUp.clone(), this.scene));
+                lasers.push(new Laser(basePosition.clone().add(new THREE.Vector3(i * 0.5, 0, 0)), dirDown.clone(), this.scene));
+            }
+            // Top-right diagonal
+            const dirTopRight = new THREE.Vector3(0.7, 0.7, 0).normalize();
+            lasers.push(new Laser(basePosition.clone().add(new THREE.Vector3(0.8, 0.3, 0)), dirTopRight, this.scene));
+            // Bottom-right diagonal
+            const dirBottomRight = new THREE.Vector3(0.7, -0.7, 0).normalize();
+            lasers.push(new Laser(basePosition.clone().add(new THREE.Vector3(0.8, -0.3, 0)), dirBottomRight, this.scene));
+        } else if (this.dualWeapon) {
             // 6-shot: triple forward + triple backward
             for (let i = -1; i <= 1; i++) {
                 lasers.push(new Laser(basePosition.clone().add(new THREE.Vector3(i * 0.5, 0, 0)), dirUp.clone(), this.scene));
@@ -656,15 +669,238 @@ class EnemyDebris {
     }
 }
 
+class EnemyMissile {
+    constructor(position, direction, scene, target) {
+        this.scene = scene;
+        this.target = target;
+        this.radius = 0.4;
+        this.speed = 35;
+        this.damage = 30;
+        this.turnRate = 2.5;
+        this.lifetime = 4;
+        this.age = 0;
+
+        const group = new THREE.Group();
+
+        // Body - darker than player missiles
+        const bodyGeo = new THREE.CylinderGeometry(0.12, 0.12, 1, 6);
+        const bodyMat = new THREE.MeshPhongMaterial({ color: 0x990000, emissive: 0x660000, shininess: 80 });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.rotation.x = Math.PI / 2;
+        group.add(body);
+
+        // Warhead
+        const headGeo = new THREE.ConeGeometry(0.15, 0.35, 6);
+        const headMat = new THREE.MeshPhongMaterial({ color: 0xff0000, emissive: 0xaa0000 });
+        const head = new THREE.Mesh(headGeo, headMat);
+        head.rotation.x = -Math.PI / 2;
+        head.position.y = 0.65;
+        group.add(head);
+
+        // Engine glow
+        const glowGeo = new THREE.SphereGeometry(0.2, 8, 8);
+        const glowMat = new THREE.MeshBasicMaterial({ color: 0xff2200, transparent: true, opacity: 0.6 });
+        this.glow = new THREE.Mesh(glowGeo, glowMat);
+        this.glow.position.y = -0.6;
+        group.add(this.glow);
+
+        this.mesh = group;
+        this.mesh.position.copy(position);
+        scene.add(this.mesh);
+
+        this.velocity = direction.multiplyScalar(this.speed);
+    }
+
+    update(deltaTime) {
+        this.age += deltaTime;
+
+        // Home in on player
+        if (this.target && this.target.mesh) {
+            const desired = new THREE.Vector3()
+                .subVectors(this.target.mesh.position, this.mesh.position)
+                .normalize()
+                .multiplyScalar(this.speed);
+            const steer = new THREE.Vector3().subVectors(desired, this.velocity);
+            const maxSteer = this.turnRate * this.speed * deltaTime;
+            if (steer.length() > maxSteer) {
+                steer.normalize().multiplyScalar(maxSteer);
+            }
+            this.velocity.add(steer);
+            this.velocity.normalize().multiplyScalar(this.speed);
+        }
+
+        this.mesh.position.add(this.velocity.clone().multiplyScalar(deltaTime));
+
+        // Point in direction of travel
+        const dir = this.velocity.clone().normalize();
+        this.mesh.lookAt(this.mesh.position.clone().add(dir));
+
+        // Engine flicker
+        this.glow.material.opacity = 0.4 + Math.sin(this.age * 25) * 0.2;
+
+        return this.age > this.lifetime;
+    }
+
+    destroy() {
+        this.scene.remove(this.mesh);
+    }
+}
+
+class MissileShip {
+    constructor(position, scene, target) {
+        this.scene = scene;
+        this.target = target;
+        this.health = 80;
+        this.radius = 2;
+        this.mass = 2;
+        this.maxSpeed = 20;
+        this.damage = 10;
+        this.currentRound = 8;
+
+        const group = new THREE.Group();
+
+        // Bulkier hull (dark red)
+        const hullGeo = new THREE.DodecahedronGeometry(1, 0);
+        const hullMat = new THREE.MeshPhongMaterial({
+            color: 0x880000,
+            emissive: 0x440000,
+            shininess: 80,
+            flatShading: true
+        });
+        group.add(new THREE.Mesh(hullGeo, hullMat));
+
+        // Missile pods on sides
+        const podGeo = new THREE.BoxGeometry(0.4, 0.4, 0.8);
+        const podMat = new THREE.MeshPhongMaterial({ color: 0x666666, emissive: 0x333333 });
+        for (let side = -1; side <= 1; side += 2) {
+            const pod = new THREE.Mesh(podGeo, podMat);
+            pod.position.set(side * 1.4, 0, 0.3);
+            group.add(pod);
+
+            // Missile tips visible in pods
+            const tipGeo = new THREE.ConeGeometry(0.1, 0.3, 4);
+            const tipMat = new THREE.MeshPhongMaterial({ color: 0xff0000, emissive: 0xaa0000 });
+            const tip = new THREE.Mesh(tipGeo, tipMat);
+            tip.rotation.x = -Math.PI / 2;
+            tip.position.set(side * 1.4, 0, 0.75);
+            group.add(tip);
+        }
+
+        // Engine glow
+        const engineGeo = new THREE.SphereGeometry(0.3, 8, 8);
+        const engineMat = new THREE.MeshBasicMaterial({ color: 0xff4400, transparent: true, opacity: 0.4 });
+        const engine = new THREE.Mesh(engineGeo, engineMat);
+        engine.position.z = -0.8;
+        group.add(engine);
+        this.engine = engine;
+
+        this.mesh = group;
+        this.mesh.position.copy(position);
+        scene.add(this.mesh);
+
+        this.velocity = new THREE.Vector3();
+        this.lastFireTime = 0;
+        this.fireRate = 3; // Fire a missile every 3 seconds
+        this.time = 0;
+    }
+
+    update(deltaTime, currentTime) {
+        this.time += deltaTime;
+        this.engine.material.opacity = 0.3 + Math.sin(this.time * 8) * 0.15;
+
+        if (this.target && this.target.mesh) {
+            const direction = new THREE.Vector3()
+                .subVectors(this.target.mesh.position, this.mesh.position)
+                .normalize();
+            const distance = this.mesh.position.distanceTo(this.target.mesh.position);
+
+            // Keep medium distance — don't get too close
+            if (distance > 30) {
+                this.velocity.add(direction.clone().multiplyScalar(15 * deltaTime));
+            } else if (distance < 15) {
+                this.velocity.sub(direction.clone().multiplyScalar(10 * deltaTime));
+            } else {
+                // Strafe sideways
+                const perp = new THREE.Vector3(-direction.y, direction.x, 0);
+                this.velocity.add(perp.multiplyScalar(8 * deltaTime));
+            }
+
+            if (this.velocity.length() > this.maxSpeed) {
+                this.velocity.normalize().multiplyScalar(this.maxSpeed);
+            }
+
+            this.mesh.lookAt(this.target.mesh.position);
+
+            // Fire homing missile
+            if (currentTime - this.lastFireTime > this.fireRate && distance < 50) {
+                this.lastFireTime = currentTime;
+                const missileDir = direction.clone();
+                const missile = new EnemyMissile(
+                    this.mesh.position.clone().add(missileDir.clone().multiplyScalar(2)),
+                    missileDir,
+                    this.scene,
+                    this.target
+                );
+                return missile;
+            }
+        }
+
+        this.mesh.position.add(this.velocity.clone().multiplyScalar(deltaTime));
+        this.velocity.multiplyScalar(0.97);
+
+        return null;
+    }
+
+    takeDamage(damage) {
+        this.health -= damage;
+        return this.health <= 0;
+    }
+
+    break() {
+        const fragments = [];
+        const pos = this.mesh.position.clone();
+
+        const hullGeo = new THREE.TetrahedronGeometry(0.5, 0);
+        const hullMat = new THREE.MeshPhongMaterial({ color: 0x880000, emissive: 0x440000, shininess: 80 });
+        for (let i = 0; i < 4; i++) {
+            const angle = (Math.PI * 2 * i) / 4;
+            const offset = new THREE.Vector3(Math.cos(angle) * 1, Math.sin(angle) * 1, 0);
+            const frag = new EnemyDebris(pos.clone().add(offset), hullGeo, hullMat, this.scene);
+            frag.velocity.copy(offset.normalize().multiplyScalar(10 + Math.random() * 6));
+            fragments.push(frag);
+        }
+
+        const podGeo = new THREE.BoxGeometry(0.3, 0.3, 0.5);
+        const podMat = new THREE.MeshPhongMaterial({ color: 0x666666, emissive: 0x333333 });
+        for (let side = -1; side <= 1; side += 2) {
+            const frag = new EnemyDebris(
+                pos.clone().add(new THREE.Vector3(side * 1.2, 0, 0)),
+                podGeo, podMat, this.scene
+            );
+            frag.velocity.set(side * 12, (Math.random() - 0.5) * 6, 0);
+            fragments.push(frag);
+        }
+
+        this.destroy();
+        return fragments;
+    }
+
+    destroy() {
+        this.scene.remove(this.mesh);
+    }
+}
+
 class Missile {
     constructor(position, direction, scene) {
         this.scene = scene;
         this.radius = 0.4;
-        this.speed = 50;
+        this.speed = 45;
         this.damage = 150;
         this.blastRadius = 12;
-        this.lifetime = 3;
+        this.lifetime = 5;
         this.age = 0;
+        this.turnRate = 3.5; // Radians per second for homing
+        this.targets = null; // Set by game to array of enemies/asteroids
 
         // Create missile mesh
         const group = new THREE.Group();
@@ -700,7 +936,40 @@ class Missile {
 
     update(deltaTime) {
         this.age += deltaTime;
+
+        // Home in on nearest target
+        if (this.targets && this.targets.length > 0) {
+            let nearest = null;
+            let nearestDist = Infinity;
+            for (const t of this.targets) {
+                if (!t.mesh) continue;
+                const d = this.mesh.position.distanceTo(t.mesh.position);
+                if (d < nearestDist) {
+                    nearestDist = d;
+                    nearest = t;
+                }
+            }
+            if (nearest) {
+                const desired = new THREE.Vector3()
+                    .subVectors(nearest.mesh.position, this.mesh.position)
+                    .normalize()
+                    .multiplyScalar(this.speed);
+                const steer = new THREE.Vector3()
+                    .subVectors(desired, this.velocity);
+                const maxSteer = this.turnRate * this.speed * deltaTime;
+                if (steer.length() > maxSteer) {
+                    steer.normalize().multiplyScalar(maxSteer);
+                }
+                this.velocity.add(steer);
+                this.velocity.normalize().multiplyScalar(this.speed);
+            }
+        }
+
         this.mesh.position.add(this.velocity.clone().multiplyScalar(deltaTime));
+
+        // Point missile in direction of travel
+        const dir = this.velocity.clone().normalize();
+        this.mesh.lookAt(this.mesh.position.clone().add(dir));
 
         // Engine flicker
         this.glow.material.opacity = 0.4 + Math.sin(this.age * 30) * 0.2;

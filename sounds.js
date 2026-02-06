@@ -25,13 +25,13 @@ class SoundManager {
         try {
             this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
-            // Create compressor for consistent music volume
+            // Create limiter for music (gentle — only catches loud peaks)
             this.musicCompressor = this.audioContext.createDynamicsCompressor();
-            this.musicCompressor.threshold.value = -18;
+            this.musicCompressor.threshold.value = -6;
             this.musicCompressor.knee.value = 12;
-            this.musicCompressor.ratio.value = 6;
+            this.musicCompressor.ratio.value = 3;
             this.musicCompressor.attack.value = 0.003;
-            this.musicCompressor.release.value = 0.15;
+            this.musicCompressor.release.value = 0.25;
             this.musicCompressor.connect(this.audioContext.destination);
 
             // Create master gain node for music (routes through compressor)

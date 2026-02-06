@@ -1,11 +1,54 @@
 // Main game controller
 
+const ROUND_CONFIG = [
+    // R1: Tutorial — enemies don't shoot
+    { asteroids: 8, hugeAsteroids: 0, enemies: 2, missileShips: 0, mines: 0, blackHoles: 0, matriarch: 0,
+      enemySpeed: 25, enemyHealth: 40, enemyFireRate: 999,
+      msHealth: 0, msFireRate: 0, largeBias: 0.40 },
+    // R2: Enemies start shooting (slowly)
+    { asteroids: 8, hugeAsteroids: 0, enemies: 3, missileShips: 0, mines: 0, blackHoles: 0, matriarch: 0,
+      enemySpeed: 26, enemyHealth: 45, enemyFireRate: 1.2,
+      msHealth: 0, msFireRate: 0, largeBias: 0.40 },
+    // R3: Ramping up
+    { asteroids: 10, hugeAsteroids: 0, enemies: 4, missileShips: 0, mines: 0, blackHoles: 0, matriarch: 0,
+      enemySpeed: 28, enemyHealth: 50, enemyFireRate: 1.0,
+      msHealth: 0, msFireRate: 0, largeBias: 0.40 },
+    // R4: NEW — mines
+    { asteroids: 10, hugeAsteroids: 0, enemies: 4, missileShips: 0, mines: 2, blackHoles: 0, matriarch: 0,
+      enemySpeed: 30, enemyHealth: 55, enemyFireRate: 0.9,
+      msHealth: 0, msFireRate: 0, largeBias: 0.50 },
+    // R5: NEW — huge asteroid, dual weapon available
+    { asteroids: 10, hugeAsteroids: 1, enemies: 5, missileShips: 0, mines: 2, blackHoles: 0, matriarch: 0,
+      enemySpeed: 32, enemyHealth: 60, enemyFireRate: 0.85,
+      msHealth: 0, msFireRate: 0, largeBias: 0.50 },
+    // R6: NEW — missile ships + player missiles
+    { asteroids: 12, hugeAsteroids: 1, enemies: 5, missileShips: 1, mines: 2, blackHoles: 0, matriarch: 0,
+      enemySpeed: 33, enemyHealth: 65, enemyFireRate: 0.8,
+      msHealth: 80, msFireRate: 3.0, largeBias: 0.50 },
+    // R7: NEW — black holes
+    { asteroids: 12, hugeAsteroids: 2, enemies: 6, missileShips: 1, mines: 3, blackHoles: 1, matriarch: 0,
+      enemySpeed: 34, enemyHealth: 70, enemyFireRate: 0.75,
+      msHealth: 85, msFireRate: 2.8, largeBias: 0.55 },
+    // R8: Peak non-boss difficulty
+    { asteroids: 14, hugeAsteroids: 2, enemies: 7, missileShips: 2, mines: 3, blackHoles: 1, matriarch: 0,
+      enemySpeed: 35, enemyHealth: 75, enemyFireRate: 0.7,
+      msHealth: 90, msFireRate: 2.6, largeBias: 0.55 },
+    // R9: Slight ease before boss
+    { asteroids: 12, hugeAsteroids: 2, enemies: 6, missileShips: 2, mines: 2, blackHoles: 1, matriarch: 0,
+      enemySpeed: 36, enemyHealth: 80, enemyFireRate: 0.65,
+      msHealth: 95, msFireRate: 2.5, largeBias: 0.55 },
+    // R10: BOSS — reduced clutter, Matriarch focus
+    { asteroids: 6, hugeAsteroids: 0, enemies: 3, missileShips: 1, mines: 1, blackHoles: 0, matriarch: 1,
+      enemySpeed: 36, enemyHealth: 80, enemyFireRate: 0.65,
+      msHealth: 95, msFireRate: 2.5, largeBias: 0.30 },
+];
+
 class Game {
     constructor() {
         this.score = 0;
         this.highScore = this.loadHighScore();
         this.round = 1;
-        this.maxRounds = 10;
+        this.maxRounds = ROUND_CONFIG.length;
         this.isRunning = false;
         this.isPaused = false;
         this.gameOver = false;
@@ -21,7 +64,12 @@ class Game {
 
         // Cheat code tracker
         this._cheatBuffer = [];
-        this._cheatCode = ['k', 'e', 'n'];
+        this._cheatCodes = {
+            'ken': () => this.activateCheat(10),
+            'son': () => this.activateCheat(6),
+            'nom': () => this.activateCheat(8)
+        };
+        this._maxCheatLen = 3;
 
         // Initialize Three.js
         this.initThreeJS();
@@ -60,14 +108,6 @@ class Game {
             fire: false,
             shield: false,
             missile: false
-        };
-
-        // Round configuration
-        this.roundConfig = {
-            asteroidCount: 3,
-            enemyCount: 0,
-            mineCount: 0,
-            blackHoleCount: 0
         };
 
         this.setupEventListeners();
@@ -165,13 +205,16 @@ class Game {
             const key = e.key.toLowerCase();
             if (this.isRunning && !this.gameOver) {
                 this._cheatBuffer.push(key);
-                if (this._cheatBuffer.length > this._cheatCode.length) {
+                if (this._cheatBuffer.length > this._maxCheatLen) {
                     this._cheatBuffer.shift();
                 }
-                if (this._cheatBuffer.length === this._cheatCode.length &&
-                    this._cheatBuffer.every((k, i) => k === this._cheatCode[i])) {
-                    this._cheatBuffer = [];
-                    this.activateCheat();
+                const typed = this._cheatBuffer.join('');
+                for (const [code, fn] of Object.entries(this._cheatCodes)) {
+                    if (typed.endsWith(code)) {
+                        this._cheatBuffer = [];
+                        fn();
+                        break;
+                    }
                 }
             }
 
@@ -200,7 +243,8 @@ class Game {
                     e.preventDefault();
                     this.input.shield = true;
                     break;
-                case 'm':
+                case 'control':
+                    e.preventDefault();
                     this.input.missile = true;
                     break;
             }
@@ -230,7 +274,7 @@ class Game {
                 case 'shift':
                     this.input.shield = false;
                     break;
-                case 'm':
+                case 'control':
                     this.input.missile = false;
                     break;
             }
@@ -246,6 +290,17 @@ class Game {
         document.getElementById('restart-btn').addEventListener('click', async () => {
             await window.soundManager.initialize();
             this.restartGame();
+        });
+
+        // Victory name submit
+        document.getElementById('submit-name-btn').addEventListener('click', () => {
+            this.submitHofName();
+        });
+        document.getElementById('winner-name').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.submitHofName();
+            }
         });
 
         // Sound control buttons
@@ -326,8 +381,13 @@ class Game {
             if (!Array.isArray(parsed)) return [];
             return parsed
                 .filter(e => e && typeof e.score === 'number' && typeof e.round === 'number' && typeof e.won === 'boolean')
-                .map(e => ({ score: Math.max(0, e.score), round: Math.max(1, Math.min(10, e.round)), won: Boolean(e.won) }))
-                .slice(0, 10);
+                .map(e => ({
+                    score: Math.max(0, e.score),
+                    round: Math.max(1, Math.min(10, e.round)),
+                    won: Boolean(e.won),
+                    name: typeof e.name === 'string' ? e.name.slice(0, 16) : ''
+                }))
+                .slice(0, 5);
         } catch (e) {
             return [];
         }
@@ -340,16 +400,23 @@ class Game {
         const sanitized = {
             score: Math.max(0, parseInt(entry.score, 10) || 0),
             round: Math.max(1, Math.min(this.maxRounds, parseInt(entry.round, 10) || 1)),
-            won: Boolean(entry.won)
+            won: Boolean(entry.won),
+            name: typeof entry.name === 'string' ? entry.name.slice(0, 16) : ''
         };
         const hof = this.loadHallOfFame();
         hof.push(sanitized);
         hof.sort((a, b) => b.score - a.score);
-        const top10 = hof.slice(0, 10);
+        const top5 = hof.slice(0, 5);
         try {
-            localStorage.setItem('spaceShooterHallOfFame', JSON.stringify(top10));
+            localStorage.setItem('spaceShooterHallOfFame', JSON.stringify(top5));
         } catch (e) { /* quota exceeded */ }
-        return top10;
+        return top5;
+    }
+
+    qualifiesForHallOfFame(score) {
+        const hof = this.loadHallOfFame();
+        if (hof.length < 5) return true;
+        return score > hof[hof.length - 1].score;
     }
 
     displayHallOfFame() {
@@ -373,15 +440,25 @@ class Game {
             rank.className = 'hof-rank';
             rank.textContent = `#${i + 1}`;
 
+            const name = document.createElement('span');
+            name.className = 'hof-name';
+            name.textContent = entry.name || 'Anonymous';
+
             const score = document.createElement('span');
             score.className = 'hof-score';
             score.textContent = entry.score.toLocaleString();
 
             const round = document.createElement('span');
             round.className = 'hof-round';
-            round.textContent = entry.won ? 'Victory!' : `Died R${entry.round}`;
+            if (entry.won) {
+                round.textContent = 'R10 Victory!';
+                round.classList.add('hof-victory');
+            } else {
+                round.textContent = `R${entry.round}/${this.maxRounds}`;
+            }
 
             row.appendChild(rank);
+            row.appendChild(name);
             row.appendChild(score);
             row.appendChild(round);
             list.appendChild(row);
@@ -428,9 +505,8 @@ class Game {
 
         // Reset UI
         this.ui.gameOver.classList.add('hidden');
-
-        // Refresh Hall of Fame
-        this.displayHallOfFame();
+        document.getElementById('hof-name-input').classList.add('hidden');
+        this.ui.startScreen.classList.add('hidden');
 
         // Start new game
         this.startGame();
@@ -526,6 +602,9 @@ class Game {
         if (config.hugeAsteroidCount > 0) {
             items.push({ key: 'huge_asteroid', label: 'Huge Asteroid', count: config.hugeAsteroidCount, cls: 'icon-asteroid', isNew: roundNumber === 5 });
         }
+        if (config.missileShipCount > 0) {
+            items.push({ key: 'missileship', label: 'Missile Ships', count: config.missileShipCount, cls: 'icon-enemy', isNew: roundNumber === 6 });
+        }
         if (config.mineCount > 0) {
             items.push({ key: 'mine', label: 'Mines', count: config.mineCount, cls: 'icon-mine', isNew: roundNumber === 4 });
         }
@@ -610,89 +689,105 @@ class Game {
     }
 
     startRound() {
-        // Calculate round difficulty - More action from the start!
-        this.roundConfig.asteroidCount = 12 + Math.floor(this.round * 1.2);
+        this.beginRound(null, null);
+    }
 
-        // Enemies from round 1!
-        this.roundConfig.enemyCount = 2 + Math.floor(this.round * 0.8);
+    beginRound(completedRound, completedStats) {
+        this.round = Math.max(1, Math.min(ROUND_CONFIG.length, this.round));
+        const cfg = ROUND_CONFIG[this.round - 1];
 
-        // Mines from round 4
-        if (this.round >= 4) {
-            this.roundConfig.mineCount = Math.floor((this.round - 3) * 0.5) + 1;
-        } else {
-            this.roundConfig.mineCount = 0;
-        }
+        // Update powerup manager round
+        this.powerUpManager.currentRound = this.round;
 
-        // Black holes from round 7
-        if (this.round >= 7) {
-            this.roundConfig.blackHoleCount = Math.floor((this.round - 6) * 0.3) + 1;
-        } else {
-            this.roundConfig.blackHoleCount = 0;
-        }
-
-        // Huge asteroids from round 5
-        if (this.round >= 5) {
-            this.roundConfig.hugeAsteroidCount = Math.floor((this.round - 4) * 0.5) + 1;
-        } else {
-            this.roundConfig.hugeAsteroidCount = 0;
-        }
+        // Build transition config object for the UI
+        const transitionConfig = {
+            asteroidCount: cfg.asteroids,
+            hugeAsteroidCount: cfg.hugeAsteroids,
+            enemyCount: cfg.enemies,
+            missileShipCount: cfg.missileShips,
+            mineCount: cfg.mines,
+            blackHoleCount: cfg.blackHoles,
+            matriarchCount: cfg.matriarch
+        };
 
         // Show round transition overlay (skip round 1 — player just clicked Start)
         if (this.round > 1) {
-            this.showRoundTransition(this.round, this.roundConfig);
+            this.showRoundTransition(this.round, transitionConfig, completedRound, completedStats);
         }
 
-        // Spawn huge asteroids (round 5+)
-        for (let i = 0; i < this.roundConfig.hugeAsteroidCount; i++) {
+        const playerPos = this.player ? this.player.mesh.position : new THREE.Vector3(0, 0, 0);
+
+        // Spawn huge asteroids
+        for (let i = 0; i < cfg.hugeAsteroids; i++) {
             const position = new THREE.Vector3(
                 (Math.random() - 0.5) * this.bounds.width,
                 (Math.random() - 0.5) * this.bounds.height,
                 0
             );
-            if (position.length() > 20) {
+            if (position.distanceTo(playerPos) > 20) {
                 this.asteroids.push(new Asteroid(position, 'huge', this.scene));
             }
         }
 
-        // Spawn asteroids
-        for (let i = 0; i < this.roundConfig.asteroidCount; i++) {
+        // Spawn asteroids with round-appropriate size weighting
+        const largeBias = cfg.largeBias;
+        for (let i = 0; i < cfg.asteroids; i++) {
             const position = new THREE.Vector3(
                 (Math.random() - 0.5) * this.bounds.width,
                 (Math.random() - 0.5) * this.bounds.height,
                 0
             );
 
-            // Don't spawn too close to player
-            if (position.length() > 10) {
-                // Weight asteroid sizes to favor large asteroids
+            if (position.distanceTo(playerPos) > 15) {
                 const random = Math.random();
                 let size;
-                if (random < 0.5) {
-                    size = 'large';    // 50% chance
-                } else if (random < 0.8) {
-                    size = 'medium';   // 30% chance
+                if (random < largeBias) {
+                    size = 'large';
+                } else if (random < largeBias + (1 - largeBias) * 0.55) {
+                    size = 'medium';
                 } else {
-                    size = 'small';    // 20% chance
+                    size = 'small';
                 }
                 this.asteroids.push(new Asteroid(position, size, this.scene));
             }
         }
 
-        // Spawn enemies
-        for (let i = 0; i < this.roundConfig.enemyCount; i++) {
-            const angle = (Math.PI * 2 * i) / this.roundConfig.enemyCount;
+        // Spawn enemies in a circle pattern
+        for (let i = 0; i < cfg.enemies; i++) {
+            const angle = (Math.PI * 2 * i) / cfg.enemies;
+            const distance = 35 + Math.random() * 20;
             const position = new THREE.Vector3(
-                Math.cos(angle) * 30,
-                Math.sin(angle) * 20,
+                Math.cos(angle) * distance,
+                Math.sin(angle) * distance,
                 0
             );
+
             const enemy = new EnemyShip(position, this.scene, this.player);
-            enemy.currentRound = this.round;  // Pass round info to enemy
+            enemy.currentRound = this.round;
+            enemy.maxSpeed = cfg.enemySpeed;
+            enemy.health = cfg.enemyHealth;
+            enemy.fireRate = cfg.enemyFireRate;
             this.enemies.push(enemy);
         }
 
+        // Spawn missile ships
+        for (let i = 0; i < cfg.missileShips; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 45 + Math.random() * 20;
+            const position = new THREE.Vector3(
+                Math.cos(angle) * distance,
+                Math.sin(angle) * distance,
+                0
+            );
+            const missileShip = new MissileShip(position, this.scene, this.player);
+            missileShip.currentRound = this.round;
+            missileShip.health = cfg.msHealth;
+            missileShip.missileFireRate = cfg.msFireRate;
+            this.enemies.push(missileShip);
+        }
+
         // Spawn mines
-        for (let i = 0; i < this.roundConfig.mineCount; i++) {
+        for (let i = 0; i < cfg.mines; i++) {
             const position = new THREE.Vector3(
                 (Math.random() - 0.5) * this.bounds.width * 0.7,
                 (Math.random() - 0.5) * this.bounds.height * 0.7,
@@ -702,13 +797,20 @@ class Game {
         }
 
         // Spawn black holes
-        for (let i = 0; i < this.roundConfig.blackHoleCount; i++) {
+        for (let i = 0; i < cfg.blackHoles; i++) {
             const position = new THREE.Vector3(
                 (Math.random() - 0.5) * this.bounds.width * 0.5,
                 (Math.random() - 0.5) * this.bounds.height * 0.5,
                 0
             );
             this.blackHoles.push(new BlackHole(position, this.scene));
+        }
+
+        // Spawn Matriarch boss
+        if (cfg.matriarch > 0) {
+            const matriarchPos = new THREE.Vector3(0, 50, 0);
+            const matriarch = new Matriarch(matriarchPos, this.scene, this.player);
+            this.enemies.push(matriarch);
         }
     }
 
@@ -773,7 +875,7 @@ class Game {
 
             // Reset timer for new round
             this.currentTime = this.roundTime;
-            this.spawnEnemyRound(completedRound, completedStats);
+            this.beginRound(completedRound, completedStats);
         }
 
         // Update player
@@ -808,6 +910,8 @@ class Game {
                     this.player.lastMissileTime = currentTime;
                     const missile = this.player.createMissile();
                     if (missile) {
+                        // Give missile a live reference to all targets
+                        missile.targets = [...this.enemies, ...this.asteroids];
                         this.playerMissiles.push(missile);
                         window.soundManager.playExplosion('small');
                     }
@@ -861,23 +965,32 @@ class Game {
         this.enemies.forEach((enemy, index) => {
             const result = enemy.update(deltaTime, currentTime);
             if (result) {
-                // Matriarch returns array of lasers, EnemyShip returns single laser
+                // Matriarch returns array of lasers, others return single projectile
                 if (Array.isArray(result)) {
                     this.enemyLasers.push(...result);
                 } else {
                     this.enemyLasers.push(result);
                 }
-                window.soundManager.playEnemyLaser();
+                if (enemy instanceof MissileShip) {
+                    window.soundManager.playExplosion('small');
+                } else {
+                    window.soundManager.playEnemyLaser();
+                }
             }
             this.physics.updatePosition(enemy, deltaTime);
             this.physics.keepInBounds(enemy, this.bounds);
         });
 
-        // Enemy respawning - when all regular enemies are destroyed, spawn tougher ones
-        const regularEnemies = this.enemies.filter(e => !(e instanceof Matriarch));
-        if (regularEnemies.length === 0 && !this.isPaused && !this.gameOver) {
+        // Enemy respawning - when all regular enemies are destroyed, spawn replacements
+        const matriarchAlive = this.enemies.some(e => e instanceof Matriarch);
+        const regularEnemies = this.enemies.filter(e => !(e instanceof Matriarch) && !(e instanceof MissileShip));
+        const missileShips = this.enemies.filter(e => e instanceof MissileShip);
+        // No respawn waves during R10 boss fight
+        if (this.round === 10 && matriarchAlive) {
+            this.enemyRespawnTimer = 0;
+        } else if (regularEnemies.length === 0 && missileShips.length === 0 && !this.isPaused && !this.gameOver && this.enemyWaveNumber < 4) {
             this.enemyRespawnTimer += deltaTime;
-            if (this.enemyRespawnTimer >= 10) {
+            if (this.enemyRespawnTimer >= 15) {
                 this.enemyRespawnTimer = 0;
                 this.enemyWaveNumber++;
                 this.spawnReplacementEnemies();
@@ -943,6 +1056,8 @@ class Game {
 
         // Update missiles
         for (let i = this.playerMissiles.length - 1; i >= 0; i--) {
+            // Update target list so missiles track current enemies
+            this.playerMissiles[i].targets = [...this.enemies, ...this.asteroids];
             const shouldRemove = this.playerMissiles[i].update(deltaTime);
             if (shouldRemove) {
                 this.playerMissiles[i].destroy();
@@ -965,6 +1080,15 @@ class Game {
             if (!hit) {
                 for (let j = 0; j < this.enemies.length; j++) {
                     if (missilePos.distanceTo(this.enemies[j].mesh.position) < this.enemies[j].radius + 1) {
+                        hit = true;
+                        break;
+                    }
+                }
+            }
+            // Check mines
+            if (!hit) {
+                for (let j = 0; j < this.mines.length; j++) {
+                    if (missilePos.distanceTo(this.mines[j].mesh.position) < this.mines[j].radius + 1) {
                         hit = true;
                         break;
                     }
@@ -1023,6 +1147,17 @@ class Game {
                             this.addScore(isMatriarch ? 2000 : 200);
                             if (isMatriarch && this.round === 10) matriarchKilled = true;
                         }
+                    }
+                }
+
+                // Destroy all mines in blast radius
+                for (let j = this.mines.length - 1; j >= 0; j--) {
+                    const dist = blastPos.distanceTo(this.mines[j].mesh.position);
+                    if (dist < blastRadius) {
+                        this.particleSystem.createExplosion(this.mines[j].mesh.position, new THREE.Color(1, 0.3, 0), 60);
+                        this.mines[j].destroy();
+                        this.mines.splice(j, 1);
+                        this.addScore(100);
                     }
                 }
 
@@ -1205,6 +1340,27 @@ class Game {
                     // Remove laser
                     this.lasers[i].destroy();
                     this.lasers.splice(i, 1);
+                    break;
+                }
+            }
+        }
+
+        // Player laser vs enemy missiles
+        for (let i = this.lasers.length - 1; i >= 0; i--) {
+            for (let j = this.enemyLasers.length - 1; j >= 0; j--) {
+                if (this.enemyLasers[j] instanceof EnemyMissile &&
+                    this.physics.checkCollision(this.lasers[i], this.enemyLasers[j])) {
+                    this.particleSystem.createExplosion(
+                        this.enemyLasers[j].mesh.position,
+                        new THREE.Color(1, 0.3, 0),
+                        30
+                    );
+                    window.soundManager.playExplosion('small');
+                    this.enemyLasers[j].destroy();
+                    this.enemyLasers.splice(j, 1);
+                    this.lasers[i].destroy();
+                    this.lasers.splice(i, 1);
+                    this.addScore(50);
                     break;
                 }
             }
@@ -1498,21 +1654,6 @@ class Game {
             this.ui.highScore.textContent = this.highScore;
         }
 
-        // Save to Hall of Fame
-        this.saveHallOfFame({ score: this.score, round: this.round, won: false });
-
-        // Show game over screen
-        this.ui.gameOver.classList.remove('hidden');
-        this.ui.gameOver.querySelector('h1').textContent = 'GAME OVER';
-        this.ui.gameOver.querySelector('h1').style.color = '#ff0000';
-        this.ui.finalScore.textContent = this.score;
-
-        // Show round reached
-        this.ui.finalWave.textContent = `Round ${this.round}`;
-
-        // Focus Play Again button
-        document.getElementById('restart-btn').focus();
-
         // Play game over sound and stop music
         window.soundManager.playGameOver();
         window.soundManager.stopMusic();
@@ -1525,6 +1666,16 @@ class Game {
                 200
             );
             this.scene.remove(this.player.mesh);
+        }
+
+        // Check if score qualifies for Hall of Fame
+        if (this.qualifiesForHallOfFame(this.score)) {
+            this._pendingHofEntry = { score: this.score, round: this.round, won: false };
+            this.showHofNameInput('GAME OVER', '#ff4444');
+        } else {
+            // Save without name and show game over directly
+            this.saveHallOfFame({ score: this.score, round: this.round, won: false });
+            this.showGameOverScreen('GAME OVER', '#ff4444', `Round ${this.round}`);
         }
     }
 
@@ -1540,146 +1691,62 @@ class Game {
             this.ui.highScore.textContent = this.highScore;
         }
 
-        // Save to Hall of Fame
-        this.saveHallOfFame({ score: this.score, round: this.maxRounds, won: true });
-
-        // Show victory screen
-        this.ui.gameOver.classList.remove('hidden');
-        this.ui.gameOver.querySelector('h1').textContent = 'VICTORY!';
-        this.ui.gameOver.querySelector('h1').style.color = '#00ff00';
-        this.ui.finalScore.textContent = this.score;
-        this.ui.finalWave.textContent = `All ${this.maxRounds} Rounds Complete!`;
-
-        // Focus Play Again button
-        document.getElementById('restart-btn').focus();
-
         // Play victory sound and stop music
         window.soundManager.playWaveComplete();
         window.soundManager.stopMusic();
+
+        // Victory always qualifies for name entry
+        this._pendingHofEntry = { score: this.score, round: this.maxRounds, won: true };
+        this.showHofNameInput('VICTORY!', '#00ff00');
     }
 
-    spawnEnemyRound(completedRound, completedStats) {
-        // Update powerup manager round
-        this.powerUpManager.currentRound = this.round;
+    showHofNameInput(heading, color) {
+        const overlay = document.getElementById('hof-name-input');
+        document.getElementById('hof-heading').textContent = heading;
+        document.getElementById('hof-heading').style.color = color;
+        document.getElementById('hof-score').textContent = this.score;
+        overlay.classList.remove('hidden');
 
-        // Calculate number of enemies with difficulty scaling
-        const baseEnemies = 2;
-        const enemyCount = baseEnemies + Math.floor(this.round * 0.8);
+        const nameInput = document.getElementById('winner-name');
+        nameInput.value = '';
+        setTimeout(() => nameInput.focus(), 100);
+    }
 
-        // Calculate asteroid count - increases each round
-        const asteroidCount = 8 + Math.floor(this.round * 2);
+    showGameOverScreen(heading, color, subtitle) {
+        // Clean up entities and go back to main menu
+        this.cleanup();
+        this.displayHallOfFame();
+        this.ui.startScreen.classList.remove('hidden');
+    }
 
-        // Huge asteroids from round 5
-        const hugeAsteroidCount = this.round >= 5 ? Math.floor((this.round - 4) * 0.5) + 1 : 0;
+    submitHofName() {
+        const nameInput = document.getElementById('winner-name');
+        const name = nameInput.value.trim()
+            .replace(/[\x00-\x1F\x7F-\x9F]/g, '')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .slice(0, 16) || 'Anonymous';
 
-        // Mines from round 4
-        const mineCount = this.round >= 4 ? Math.floor((this.round - 3) * 0.5) + 1 : 0;
+        // Hide name input
+        document.getElementById('hof-name-input').classList.add('hidden');
 
-        // Black holes from round 7
-        const blackHoleCount = this.round >= 7 ? Math.floor((this.round - 6) * 0.3) + 1 : 0;
+        // Save to Hall of Fame with name
+        const entry = this._pendingHofEntry || { score: this.score, round: this.round, won: false };
+        entry.name = name;
+        this.saveHallOfFame(entry);
 
-        // Matriarch on round 10
-        const matriarchCount = this.round === 10 ? 1 : 0;
-
-        // Show round transition (pauses the game)
-        this.showRoundTransition(this.round, {
-            asteroidCount: asteroidCount,
-            hugeAsteroidCount: hugeAsteroidCount,
-            enemyCount: enemyCount,
-            mineCount: mineCount,
-            blackHoleCount: blackHoleCount,
-            matriarchCount: matriarchCount
-        }, completedRound, completedStats);
-
-        // Spawn huge asteroids (round 5+)
-        for (let i = 0; i < hugeAsteroidCount; i++) {
-            const position = new THREE.Vector3(
-                (Math.random() - 0.5) * this.bounds.width,
-                (Math.random() - 0.5) * this.bounds.height,
-                0
-            );
-            if (position.distanceTo(this.player.mesh.position) > 20) {
-                this.asteroids.push(new Asteroid(position, 'huge', this.scene));
-            }
-        }
-
-        // Spawn asteroids - more and larger as rounds progress
-        const largeBias = Math.min(0.7, 0.4 + this.round * 0.03); // Large chance grows per round
-        for (let i = 0; i < asteroidCount; i++) {
-            const position = new THREE.Vector3(
-                (Math.random() - 0.5) * this.bounds.width,
-                (Math.random() - 0.5) * this.bounds.height,
-                0
-            );
-
-            // Don't spawn too close to player
-            if (position.distanceTo(this.player.mesh.position) > 15) {
-                const random = Math.random();
-                let size;
-                if (random < largeBias) {
-                    size = 'large';
-                } else if (random < largeBias + 0.2) {
-                    size = 'medium';
-                } else {
-                    size = 'small';
-                }
-                this.asteroids.push(new Asteroid(position, size, this.scene));
-            }
-        }
-
-        // Spawn enemies in a circle pattern
-        for (let i = 0; i < enemyCount; i++) {
-            const angle = (Math.PI * 2 * i) / enemyCount;
-            const distance = 40 + Math.random() * 20; // Random distance
-            const position = new THREE.Vector3(
-                Math.cos(angle) * distance,
-                Math.sin(angle) * distance,
-                0
-            );
-
-            const enemy = new EnemyShip(position, this.scene, this.player);
-            enemy.currentRound = this.round;
-
-            // Difficulty scaling
-            enemy.maxSpeed = 30 + (this.round * 2); // +2 speed per round
-            enemy.fireRate = Math.max(0.3, 0.8 - (this.round * 0.05)); // Faster shooting
-            enemy.health = 50 + (this.round * 5); // +5 health per round
-
-            this.enemies.push(enemy);
-        }
-
-        // Spawn mines
-        for (let i = 0; i < mineCount; i++) {
-            const position = new THREE.Vector3(
-                (Math.random() - 0.5) * this.bounds.width * 0.7,
-                (Math.random() - 0.5) * this.bounds.height * 0.7,
-                0
-            );
-            this.mines.push(new SpaceMine(position, this.scene));
-        }
-
-        // Spawn black holes
-        for (let i = 0; i < blackHoleCount; i++) {
-            const position = new THREE.Vector3(
-                (Math.random() - 0.5) * this.bounds.width * 0.5,
-                (Math.random() - 0.5) * this.bounds.height * 0.5,
-                0
-            );
-            this.blackHoles.push(new BlackHole(position, this.scene));
-        }
-
-        // Spawn Matriarch boss on round 10
-        if (matriarchCount > 0) {
-            const matriarchPos = new THREE.Vector3(0, 50, 0);
-            const matriarch = new Matriarch(matriarchPos, this.scene, this.player);
-            this.enemies.push(matriarch);
+        // Show appropriate game over screen
+        if (entry.won) {
+            this.showGameOverScreen('VICTORY!', '#00ff00', `All ${this.maxRounds} Rounds Complete!`);
+        } else {
+            this.showGameOverScreen('GAME OVER', '#ff4444', `Round ${entry.round}`);
         }
     }
 
-    activateCheat() {
+    activateCheat(targetRound) {
         // Play powerup sound
         window.soundManager.playPowerUp();
-        this.showPowerUpMessage('CHEAT ACTIVATED!');
+        this.showPowerUpMessage(`SKIP TO ROUND ${targetRound}!`);
 
         // Max health
         this.player.health = this.player.maxHealth;
@@ -1718,21 +1785,22 @@ class Game {
         this.playerMissiles = [];
         this.debris = [];
 
-        // Skip to round 10
+        // Skip to target round
         window.soundManager.fadeOutMusic(1);
-        this.round = 10;
+        this.round = targetRound;
         this.currentTime = this.roundTime;
         this.enemyWaveNumber = 0;
         this.enemyRespawnTimer = 0;
         this.roundStats = { enemiesKilled: 0, asteroidsDestroyed: 0, scoreEarned: 0, damageTaken: 0 };
-        this.spawnEnemyRound(9, { enemiesKilled: 0, asteroidsDestroyed: 0, scoreEarned: 0, damageTaken: 0 });
+        this.beginRound(targetRound - 1, { enemiesKilled: 0, asteroidsDestroyed: 0, scoreEarned: 0, damageTaken: 0 });
     }
 
     spawnReplacementEnemies() {
-        const baseCount = 1 + Math.floor(this.round * 0.3);
-        const cappedWave = Math.min(this.enemyWaveNumber, 5);
+        const roundIdx = Math.max(0, Math.min(ROUND_CONFIG.length - 1, this.round - 1));
+        const cfg = ROUND_CONFIG[roundIdx];
+        const baseCount = Math.min(2 + Math.floor(this.round * 0.2), 4);
         const currentCount = this.enemies.filter(e => !(e instanceof Matriarch)).length;
-        const count = Math.min(baseCount + cappedWave, 12 - currentCount);
+        const count = Math.min(baseCount, 6 - currentCount);
         if (count <= 0) return;
 
         for (let i = 0; i < count; i++) {
@@ -1751,11 +1819,10 @@ class Game {
             const enemy = new EnemyShip(position, this.scene, this.player);
             enemy.currentRound = this.round;
 
-            // Scale difficulty with round and wave number
-            const waveBonus = this.enemyWaveNumber * 3;
-            enemy.maxSpeed = 30 + (this.round * 2) + waveBonus;
-            enemy.fireRate = Math.max(0.25, 0.8 - (this.round * 0.05) - (this.enemyWaveNumber * 0.03));
-            enemy.health = 50 + (this.round * 5) + (this.enemyWaveNumber * 10);
+            // Use round config stats + modest health wave bonus only
+            enemy.maxSpeed = cfg.enemySpeed;
+            enemy.fireRate = cfg.enemyFireRate;
+            enemy.health = cfg.enemyHealth + (this.enemyWaveNumber * 10);
 
             this.enemies.push(enemy);
         }
