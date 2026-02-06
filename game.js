@@ -971,6 +971,19 @@ class Game {
             });
         }
 
+        // Ensure at least 1 health box exists when health is critical
+        if (this.player.health > 0 && this.player.health <= 30) {
+            const hasHealthBox = this.powerUpManager.powerUps.some(p => p.type === 'health' && !p.collected);
+            if (!hasHealthBox) {
+                const angle = Math.random() * Math.PI * 2;
+                const dist = 15 + Math.random() * 10;
+                const pos = this.player.mesh.position.clone().add(
+                    new THREE.Vector3(Math.cos(angle) * dist, Math.sin(angle) * dist, 0)
+                );
+                this.powerUpManager.spawnPowerUpAt(pos, 'health');
+            }
+        }
+
         // Immediately update health bar
         const healthPercent = (this.player.health / this.player.maxHealth) * 100;
         const hFill = document.getElementById('health-fill');
@@ -1041,15 +1054,29 @@ class Game {
         this.ui.ammo.textContent = this.player.ammo;
         // Change color based on ammo level
         const lowAmmo = document.getElementById('low-ammo-warning');
+        const outOfAmmo = document.getElementById('out-of-ammo-warning');
         if (this.player.ammo === 0) {
             this.ui.ammo.style.color = '#ff0000';
             if (lowAmmo) lowAmmo.classList.remove('hidden');
+            // Show "OUT OF AMMO" above player
+            if (outOfAmmo) {
+                outOfAmmo.classList.remove('hidden');
+                const pos = this.player.mesh.position.clone();
+                pos.y += 3;
+                pos.project(this.camera);
+                const x = (pos.x * 0.5 + 0.5) * window.innerWidth;
+                const y = (-pos.y * 0.5 + 0.5) * window.innerHeight;
+                outOfAmmo.style.left = x + 'px';
+                outOfAmmo.style.top = y + 'px';
+            }
         } else if (this.player.ammo < 20) {
             this.ui.ammo.style.color = '#ffaa00';
             if (lowAmmo) lowAmmo.classList.remove('hidden');
+            if (outOfAmmo) outOfAmmo.classList.add('hidden');
         } else {
             this.ui.ammo.style.color = '#ffa500';
             if (lowAmmo) lowAmmo.classList.add('hidden');
+            if (outOfAmmo) outOfAmmo.classList.add('hidden');
         }
 
         // Update round display
