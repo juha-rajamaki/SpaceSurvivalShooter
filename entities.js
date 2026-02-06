@@ -126,6 +126,8 @@ class PlayerShuttle {
         const basePosition = this.mesh.position.clone();
         const direction = new THREE.Vector3(0, 1, 0);  // Shoot upward in the game plane
 
+        console.log('Creating laser at position:', basePosition.x, basePosition.y, basePosition.z);
+
         if (this.weaponBoost || this.weaponLevel > 1) {
             // Triple shot
             for (let i = -1; i <= 1; i++) {
@@ -138,9 +140,12 @@ class PlayerShuttle {
             }
         } else {
             // Single shot
-            lasers.push(new Laser(basePosition, direction, this.scene));
+            const laser = new Laser(basePosition, direction, this.scene);
+            lasers.push(laser);
+            console.log('Single laser created, mesh position:', laser.mesh.position.x, laser.mesh.position.y, laser.mesh.position.z);
         }
 
+        console.log('Returning', lasers.length, 'lasers');
         return lasers;
     }
 

@@ -126,6 +126,16 @@ class Game {
     setupEventListeners() {
         // Keyboard controls
         document.addEventListener('keydown', (e) => {
+            console.log('Key pressed:', e.key, 'Code:', e.code);
+
+            // Handle space key specially (both e.key and e.code)
+            if (e.key === ' ' || e.code === 'Space') {
+                e.preventDefault();
+                this.input.fire = true;
+                console.log('Space pressed! Input.fire =', this.input.fire, 'isRunning =', this.isRunning);
+                return;
+            }
+
             switch (e.key.toLowerCase()) {
                 case 'arrowleft':
                 case 'a':
@@ -143,11 +153,6 @@ class Game {
                 case 's':
                     this.input.down = true;
                     break;
-                case ' ':
-                    e.preventDefault();
-                    this.input.fire = true;
-                    console.log('Space pressed! Input.fire =', this.input.fire, 'isRunning =', this.isRunning);
-                    break;
                 case 'shift':
                     this.input.boost = true;
                     break;
@@ -158,6 +163,13 @@ class Game {
         });
 
         document.addEventListener('keyup', (e) => {
+            // Handle space key specially
+            if (e.key === ' ' || e.code === 'Space') {
+                this.input.fire = false;
+                console.log('Space released! Input.fire =', this.input.fire);
+                return;
+            }
+
             switch (e.key.toLowerCase()) {
                 case 'arrowleft':
                 case 'a':
@@ -174,9 +186,6 @@ class Game {
                 case 'arrowdown':
                 case 's':
                     this.input.down = false;
-                    break;
-                case ' ':
-                    this.input.fire = false;
                     break;
                 case 'shift':
                     this.input.boost = false;
@@ -484,10 +493,14 @@ class Game {
         });
 
         // Update lasers
+        if (this.lasers.length > 0) {
+            console.log('Updating', this.lasers.length, 'lasers');
+        }
         for (let i = this.lasers.length - 1; i >= 0; i--) {
             const shouldRemove = this.lasers[i].update(deltaTime);
 
             if (shouldRemove) {
+                console.log('Removing laser due to lifetime');
                 this.lasers[i].destroy();
                 this.lasers.splice(i, 1);
             } else {
