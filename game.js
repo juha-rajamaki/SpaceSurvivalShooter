@@ -598,10 +598,27 @@ class Game {
                         );
                         window.soundManager.playExplosion(this.asteroids[j].size);
 
-                        // Drop score collectible (50% chance)
-                        if (Math.random() < 0.5) {
+                        // Drop score collectibles based on asteroid size
+                        const asteroidPos = this.asteroids[j].mesh.position.clone();
+                        let dropCount = 0;
+
+                        if (this.asteroids[j].size === 'large') {
+                            // Large asteroids drop 1-3 collectibles
+                            dropCount = Math.floor(Math.random() * 3) + 1;
+                        } else if (this.asteroids[j].size === 'medium') {
+                            // Medium asteroids drop 0-1 collectibles (50% chance)
+                            dropCount = Math.random() < 0.5 ? 1 : 0;
+                        }
+
+                        // Spawn collectibles with slight offset
+                        for (let k = 0; k < dropCount; k++) {
+                            const offset = new THREE.Vector3(
+                                (Math.random() - 0.5) * 3,
+                                (Math.random() - 0.5) * 3,
+                                0
+                            );
                             this.powerUpManager.spawnPowerUpAt(
-                                this.asteroids[j].mesh.position.clone(),
+                                asteroidPos.clone().add(offset),
                                 'score'
                             );
                         }
