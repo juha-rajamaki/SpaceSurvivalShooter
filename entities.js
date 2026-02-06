@@ -111,15 +111,8 @@ class PlayerShuttle {
 
         // Handle firing
         if (input.fire && currentTime - this.lastFireTime > this.fireRate) {
-            console.log('Creating lasers at time:', currentTime);
-            console.log('Player position:', this.mesh.position.x, this.mesh.position.y, this.mesh.position.z);
-            console.log('Scene exists:', !!this.scene);
             this.lastFireTime = currentTime;
-            const lasers = this.createLaser();
-            console.log('createLaser returned:', lasers);
-            return lasers;
-        } else if (input.fire) {
-            console.log('Fire pressed but cooldown active. Time since last fire:', currentTime - this.lastFireTime, 'Required:', this.fireRate);
+            return this.createLaser();
         }
 
         return null;
@@ -129,8 +122,6 @@ class PlayerShuttle {
         const lasers = [];
         const basePosition = this.mesh.position.clone();
         const direction = new THREE.Vector3(0, 1, 0);  // Shoot upward in the game plane
-
-        console.log('Creating laser at position:', basePosition.x, basePosition.y, basePosition.z);
 
         if (this.weaponBoost || this.weaponLevel > 1) {
             // Triple shot
@@ -144,12 +135,9 @@ class PlayerShuttle {
             }
         } else {
             // Single shot
-            const laser = new Laser(basePosition, direction, this.scene);
-            lasers.push(laser);
-            console.log('Single laser created, mesh position:', laser.mesh.position.x, laser.mesh.position.y, laser.mesh.position.z);
+            lasers.push(new Laser(basePosition, direction, this.scene));
         }
 
-        console.log('Returning', lasers.length, 'lasers');
         return lasers;
     }
 
@@ -178,21 +166,24 @@ class Laser {
         this.lifetime = 2;
         this.age = 0;
 
-        // Create laser mesh - MADE BIGGER FOR VISIBILITY
-        const geometry = new THREE.BoxGeometry(0.5, 2, 0.5); // Changed to box and made bigger
-        const material = new THREE.MeshBasicMaterial({
-            color: 0xff0000  // Bright red for maximum visibility
+        // Create laser mesh
+        const geometry = new THREE.CapsuleGeometry(0.15, 1.5, 4, 8); // Slightly larger than before
+        const material = new THREE.MeshPhongMaterial({
+            color: 0x00ffff,  // Cyan color
+            emissive: 0x00ffff,
+            emissiveIntensity: 2
         });
         this.mesh = new THREE.Mesh(geometry, material);
         this.mesh.position.copy(position);
+        this.mesh.rotation.x = Math.PI / 2;
         scene.add(this.mesh);
 
-        // Add glow - MADE BIGGER
-        const glowGeometry = new THREE.SphereGeometry(1, 8, 8); // Made much bigger
+        // Add glow
+        const glowGeometry = new THREE.SphereGeometry(0.4, 8, 8);
         const glowMaterial = new THREE.MeshBasicMaterial({
-            color: 0xffff00,  // Yellow glow
+            color: 0x00ffff,
             transparent: true,
-            opacity: 0.5
+            opacity: 0.3
         });
         this.glow = new THREE.Mesh(glowGeometry, glowMaterial);
         this.mesh.add(this.glow);
@@ -338,6 +329,7 @@ class EnemyShip {
         this.mass = 1.5;
         this.maxSpeed = 30;  // Increased from 20 - now as fast as player!
         this.damage = 20;
+        this.currentWave = 1;  // Default to wave 1 (no shooting)
 
         // Create enemy ship
         const group = new THREE.Group();
@@ -404,8 +396,11 @@ class EnemyShip {
             // Look at player
             this.mesh.lookAt(this.target.mesh.position);
 
-            // Fire at player from further away
-            if (currentTime - this.lastFireTime > this.fireRate && distance < 40) {  // Increased from 30
+            // Fire at player from further away (but not in wave 1)
+            if (this.currentWave > 1 &&  // Don't shoot in wave 1
+                currentTime - this.lastFireTime > this.fireRate &&
+                distance < 40) {  // Increased from 30
+
                 this.lastFireTime = currentTime;
                 return this.createLaser(direction);
             }

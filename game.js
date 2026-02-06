@@ -25,13 +25,13 @@ class Game {
         this.lasers = [];
         this.enemyLasers = [];
 
-        // Game bounds
+        // Game bounds - INCREASED SIZE
         this.bounds = {
-            minX: -50, maxX: 50,
-            minY: -30, maxY: 30,
-            minZ: -10, maxZ: 10,
-            width: 100,
-            height: 60
+            minX: -100, maxX: 100,  // Doubled width
+            minY: -60, maxY: 60,     // Doubled height
+            minZ: -20, maxZ: 20,     // Doubled depth
+            width: 200,              // Was 100
+            height: 120              // Was 60
         };
 
         // Input handling
@@ -68,7 +68,7 @@ class Game {
             0.1,
             1000
         );
-        this.camera.position.set(0, 0, 30);
+        this.camera.position.set(0, 0, 50);  // Increased from 30 to see larger area
         this.camera.lookAt(0, 0, 0);
 
         // Renderer
@@ -126,13 +126,10 @@ class Game {
     setupEventListeners() {
         // Keyboard controls
         document.addEventListener('keydown', (e) => {
-            console.log('Key pressed:', e.key, 'Code:', e.code);
-
             // Handle space key specially (both e.key and e.code)
             if (e.key === ' ' || e.code === 'Space') {
                 e.preventDefault();
                 this.input.fire = true;
-                console.log('Space pressed! Input.fire =', this.input.fire, 'isRunning =', this.isRunning);
                 return;
             }
 
@@ -166,7 +163,6 @@ class Game {
             // Handle space key specially
             if (e.key === ' ' || e.code === 'Space') {
                 this.input.fire = false;
-                console.log('Space released! Input.fire =', this.input.fire);
                 return;
             }
 
@@ -267,16 +263,6 @@ class Game {
         // Create player
         this.player = new PlayerShuttle(this.scene);
 
-        // TEST: Create a laser immediately to verify the system works
-        console.log('TEST: Creating test laser at game start');
-        const testLaser = new Laser(
-            new THREE.Vector3(0, 0, 0),  // Center of screen
-            new THREE.Vector3(0, 1, 0),  // Upward
-            this.scene
-        );
-        this.lasers.push(testLaser);
-        console.log('TEST: Test laser created and added to scene');
-
         // Start first wave
         this.startWave();
 
@@ -363,7 +349,9 @@ class Game {
                 Math.sin(angle) * 20,
                 0
             );
-            this.enemies.push(new EnemyShip(position, this.scene, this.player));
+            const enemy = new EnemyShip(position, this.scene, this.player);
+            enemy.currentWave = this.wave;  // Pass wave info to enemy
+            this.enemies.push(enemy);
         }
 
         // Spawn mines
@@ -388,7 +376,11 @@ class Game {
     }
 
     checkWaveComplete() {
-        if (this.asteroids.length === 0 && this.enemies.length === 0) {
+        // Check if all threats are cleared (not just enemies and asteroids)
+        if (this.asteroids.length === 0 &&
+            this.enemies.length === 0 &&
+            this.mines.length === 0) {
+
             this.wave++;
             this.ui.wave.textContent = this.wave;
             window.soundManager.playWaveComplete();
@@ -414,7 +406,6 @@ class Game {
             // Handle player update and firing first to get acceleration
             const newLasers = this.player.update(deltaTime, this.input, currentTime);
             if (newLasers) {
-                console.log('New lasers created:', newLasers.length);
                 this.lasers.push(...newLasers);
                 window.soundManager.playLaser();
             }
@@ -503,14 +494,10 @@ class Game {
         });
 
         // Update lasers
-        if (this.lasers.length > 0) {
-            console.log('Updating', this.lasers.length, 'lasers');
-        }
         for (let i = this.lasers.length - 1; i >= 0; i--) {
             const shouldRemove = this.lasers[i].update(deltaTime);
 
             if (shouldRemove) {
-                console.log('Removing laser due to lifetime');
                 this.lasers[i].destroy();
                 this.lasers.splice(i, 1);
             } else {

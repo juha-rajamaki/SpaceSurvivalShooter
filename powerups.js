@@ -125,7 +125,7 @@ class PowerUpManager {
         this.powerUps = [];
         this.activePowerUps = [];
         this.spawnTimer = 0;
-        this.spawnInterval = 5; // Spawn every 5 seconds - more action!
+        this.spawnInterval = 15; // Spawn every 15 seconds - less frequent
     }
 
     update(deltaTime, player, bounds) {
@@ -179,8 +179,18 @@ class PowerUpManager {
     }
 
     spawnPowerUp(bounds) {
-        const types = ['shield', 'weapon', 'speed', 'multiplier'];
-        const type = types[Math.floor(Math.random() * types.length)];
+        // Weapon power-ups are rarer (10% chance)
+        const random = Math.random();
+        let type;
+        if (random < 0.1) {
+            type = 'weapon';  // 10% chance
+        } else if (random < 0.4) {
+            type = 'shield';   // 30% chance
+        } else if (random < 0.7) {
+            type = 'speed';    // 30% chance
+        } else {
+            type = 'multiplier'; // 30% chance
+        }
 
         const position = new THREE.Vector3(
             (Math.random() - 0.5) * bounds.width * 0.8,
