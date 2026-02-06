@@ -12,7 +12,7 @@ class PowerUp {
             shield: { color: 0x00aaff, icon: '🛡️', duration: 15 },
             weapon: { color: 0xff0000, icon: '🔫', duration: 15 },
             speed: { color: 0xffff00, icon: '⚡', duration: 10 },
-            score: { color: 0x00ff00, icon: '⭐', scoreValue: 500 },
+            score: { color: 0x00ff00, icon: '⭐', scoreValue: 150 },
             ammo: { color: 0xffaa00, icon: '💥', ammoValue: 50 }
         };
 
