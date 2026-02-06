@@ -30,6 +30,14 @@
                 </div>
             </div>
 
+            <!-- Sound Controls -->
+            <div id="sound-controls">
+                <button id="toggle-sound" class="sound-btn" title="Toggle All Sound">🔊</button>
+                <button id="toggle-music" class="sound-btn" title="Toggle Music">🎵</button>
+                <button id="toggle-sfx" class="sound-btn" title="Toggle Sound Effects">🎮</button>
+                <input type="range" id="volume-slider" min="0" max="100" value="50" title="Master Volume">
+            </div>
+
             <div id="power-ups">
                 <div id="active-powerups"></div>
             </div>
@@ -61,6 +69,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <!-- Game Scripts -->
+    <script src="sounds.js"></script>
     <script src="particles.js"></script>
     <script src="physics.js"></script>
     <script src="entities.js"></script>

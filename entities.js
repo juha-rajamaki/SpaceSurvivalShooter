@@ -99,8 +99,8 @@ class PlayerShuttle {
         // Store acceleration for physics update
         this.acceleration.copy(acc);
 
-        // Apply acceleration
-        this.velocity.add(acc.multiplyScalar(deltaTime));
+        // Don't apply acceleration here - physics system handles it
+        // this.velocity.add(acc.multiplyScalar(deltaTime));
 
         // Engine glow effect
         if (acc.length() > 0) {
@@ -378,9 +378,12 @@ class EnemyShip {
             const distance = this.mesh.position.distanceTo(this.target.mesh.position);
 
             // More aggressive - get closer!
-            if (distance > 7) {
+            if (distance > 5) {
                 this.velocity.add(direction.multiplyScalar(20 * deltaTime));  // Faster acceleration
-            } else if (distance < 3) {  // Come much closer (was 5)
+            } else if (distance > 3) {
+                // Maintain distance but keep moving (circle strafe behavior)
+                this.velocity.add(direction.multiplyScalar(5 * deltaTime));
+            } else if (distance < 2) {  // Only back off if very close
                 this.velocity.sub(direction.multiplyScalar(10 * deltaTime));
             }
 

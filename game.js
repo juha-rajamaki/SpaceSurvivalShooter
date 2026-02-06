@@ -184,13 +184,50 @@ class Game {
         });
 
         // UI buttons
-        document.getElementById('start-btn').addEventListener('click', () => {
+        document.getElementById('start-btn').addEventListener('click', async () => {
+            // Initialize sound system on first user interaction
+            await window.soundManager.initialize();
             this.startGame();
         });
 
-        document.getElementById('restart-btn').addEventListener('click', () => {
+        document.getElementById('restart-btn').addEventListener('click', async () => {
+            await window.soundManager.initialize();
             this.restartGame();
         });
+
+        // Sound control buttons
+        document.getElementById('toggle-sound').addEventListener('click', () => {
+            const enabled = window.soundManager.toggleSound();
+            document.getElementById('toggle-sound').classList.toggle('disabled', !enabled);
+            document.getElementById('toggle-sound').textContent = enabled ? '🔊' : '🔇';
+        });
+
+        document.getElementById('toggle-music').addEventListener('click', () => {
+            const enabled = window.soundManager.toggleMusic();
+            document.getElementById('toggle-music').classList.toggle('disabled', !enabled);
+        });
+
+        document.getElementById('toggle-sfx').addEventListener('click', () => {
+            const enabled = window.soundManager.toggleSFX();
+            document.getElementById('toggle-sfx').classList.toggle('disabled', !enabled);
+        });
+
+        document.getElementById('volume-slider').addEventListener('input', (e) => {
+            window.soundManager.setMasterVolume(e.target.value / 100);
+        });
+
+        // Initialize sound button states from saved settings
+        if (!window.soundManager.enabled) {
+            document.getElementById('toggle-sound').classList.add('disabled');
+            document.getElementById('toggle-sound').textContent = '🔇';
+        }
+        if (!window.soundManager.musicEnabled) {
+            document.getElementById('toggle-music').classList.add('disabled');
+        }
+        if (!window.soundManager.sfxEnabled) {
+            document.getElementById('toggle-sfx').classList.add('disabled');
+        }
+        document.getElementById('volume-slider').value = window.soundManager.masterVolume * 100;
     }
 
     initUI() {
@@ -210,6 +247,9 @@ class Game {
     startGame() {
         this.ui.startScreen.classList.add('hidden');
         this.isRunning = true;
+
+        // Start background music
+        window.soundManager.startMusic();
         this.gameOver = false;
         this.score = 0;
         this.wave = 1;
@@ -331,6 +371,7 @@ class Game {
         if (this.asteroids.length === 0 && this.enemies.length === 0) {
             this.wave++;
             this.ui.wave.textContent = this.wave;
+            window.soundManager.playWaveComplete();
             this.startWave();
 
             // Bonus points for completing wave
@@ -354,6 +395,7 @@ class Game {
             const newLasers = this.player.update(deltaTime, this.input, currentTime);
             if (newLasers) {
                 this.lasers.push(...newLasers);
+                window.soundManager.playLaser();
             }
 
             // Update physics
@@ -366,11 +408,20 @@ class Game {
                 const trailPos = this.player.mesh.position.clone();
                 trailPos.z -= 1.5;
                 const direction = this.player.velocity.clone().normalize();
+                const isBoosting = this.input.boost && this.player.speedBoost;
                 this.particleSystem.createEngineTrail(
                     trailPos,
                     direction,
-                    this.input.boost && this.player.speedBoost
+                    isBoosting
                 );
+
+                // Play boost sound only once when boost starts
+                if (isBoosting && !this.wasBoostingLastFrame) {
+                    window.soundManager.playEngineBoost();
+                }
+                this.wasBoostingLastFrame = isBoosting;
+            } else {
+                this.wasBoostingLastFrame = false;
             }
 
             // Apply black hole gravity
@@ -395,6 +446,7 @@ class Game {
             const laser = enemy.update(deltaTime, currentTime);
             if (laser) {
                 this.enemyLasers.push(laser);
+                window.soundManager.playEnemyLaser();
             }
             this.physics.updatePosition(enemy, deltaTime);
             this.physics.keepInBounds(enemy, this.bounds);
@@ -409,6 +461,7 @@ class Game {
                     new THREE.Color(1, 0.3, 0),
                     100
                 );
+                window.soundManager.playExplosion('large');
 
                 // Check damage to player
                 const distance = this.mines[i].mesh.position.distanceTo(this.player.mesh.position);
@@ -458,6 +511,7 @@ class Game {
         const powerUpEffect = this.powerUpManager.update(deltaTime, this.player, this.bounds);
         if (powerUpEffect) {
             this.showPowerUpMessage(powerUpEffect.message);
+            window.soundManager.playPowerUp();
             this.updatePowerUpUI();
         }
 
@@ -492,6 +546,7 @@ class Game {
                             new THREE.Color(0.5, 0.3, 0.2),
                             30
                         );
+                        window.soundManager.playExplosion(this.asteroids[j].size);
 
                         // Create fragments
                         const fragments = this.asteroids[j].break();
@@ -526,10 +581,14 @@ class Game {
                             new THREE.Color(1, 0.5, 0),
                             50
                         );
+                        window.soundManager.playExplosion('medium');
 
                         this.enemies[j].destroy();
                         this.enemies.splice(j, 1);
                         this.addScore(200);
+                    } else {
+                        // Just hit, not destroyed
+                        window.soundManager.playHit();
                     }
 
                     // Remove laser
@@ -578,6 +637,7 @@ class Game {
         if (this.player.takeDamage(amount)) {
             this.endGame();
         } else {
+            window.soundManager.playHit();
             // Flash effect
             this.player.mesh.traverse(child => {
                 if (child.material) {
@@ -650,6 +710,10 @@ class Game {
         this.ui.gameOver.classList.remove('hidden');
         this.ui.finalScore.textContent = this.score;
         this.ui.finalWave.textContent = this.wave;
+
+        // Play game over sound and stop music
+        window.soundManager.playGameOver();
+        window.soundManager.stopMusic();
 
         // Create explosion effect
         if (this.player) {
