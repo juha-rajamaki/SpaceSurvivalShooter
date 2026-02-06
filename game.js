@@ -376,6 +376,7 @@ class Game {
             this.enemies.length === 0 &&
             this.mines.length === 0) {
 
+            console.log('Wave', this.wave, 'complete! Starting wave', this.wave + 1);
             this.wave++;
             this.ui.wave.textContent = this.wave;
             window.soundManager.playWaveComplete();
@@ -383,6 +384,11 @@ class Game {
 
             // Bonus points for completing wave
             this.addScore(100 * this.wave);
+        } else {
+            // Debug: Show what's still remaining
+            if (this.enemies.length === 0 && (this.asteroids.length > 0 || this.mines.length > 0)) {
+                console.log('Enemies cleared but wave not complete. Remaining: asteroids=', this.asteroids.length, 'mines=', this.mines.length);
+            }
         }
     }
 
