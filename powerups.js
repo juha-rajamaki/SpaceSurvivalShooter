@@ -14,7 +14,9 @@ class PowerUp {
             speed: { color: 0xffff00, icon: '⚡', duration: 10 },
             score: { color: 0x00ff00, icon: '⭐', scoreValue: 150 },
             ammo: { color: 0xffaa00, icon: '💥', ammoValue: 100 },
-            health: { color: 0xff00ff, icon: '❤️' }
+            health: { color: 0xff00ff, icon: '❤️' },
+            dualweapon: { color: 0xff4400, icon: '🔥' },
+            missile: { color: 0xff2200, icon: '🚀', missileCount: 5 }
         };
 
         this.config = config[type];
@@ -186,12 +188,21 @@ class PowerUp {
                 };
 
             case 'weapon':
+                if (player.weaponBoost) {
+                    // Already has triple — upgrade to 6-shot dual fire
+                    player.dualWeapon = true;
+                    player.fireRate = 0.08;
+                    player.ammo = Math.min(player.ammo + 100, player.maxAmmo);
+                    return {
+                        message: '6-SHOT DUAL FIRE +100 AMMO',
+                        type: 'dualweapon'
+                    };
+                }
                 player.weaponBoost = true;
-                player.fireRate = 0.08; // Even faster firing!
+                player.fireRate = 0.08;
                 player.ammo = Math.min(player.ammo + 100, player.maxAmmo);
                 return {
                     message: 'TRIPLE SHOT +100 AMMO',
-                    duration: this.config.duration,
                     type: 'weapon'
                 };
 
@@ -229,6 +240,26 @@ class PowerUp {
                     message: 'FULL HEALTH RESTORED',
                     type: 'health'
                 };
+
+            case 'dualweapon':
+                // Permanent 6-shot (triple both directions)
+                player.weaponBoost = true;
+                player.dualWeapon = true;
+                player.fireRate = 0.08;
+                player.ammo = Math.min(player.ammo + 100, player.maxAmmo);
+                return {
+                    message: '6-SHOT DUAL FIRE +100 AMMO',
+                    type: 'dualweapon'
+                };
+
+            case 'missile':
+                // Add missiles
+                player.hasMissiles = true;
+                player.missiles = Math.min(player.missiles + this.config.missileCount, player.maxMissiles);
+                return {
+                    message: `+${this.config.missileCount} MISSILES (Press M)`,
+                    type: 'missile'
+                };
         }
     }
 
@@ -244,6 +275,7 @@ class PowerUpManager {
         this.activePowerUps = [];
         this.spawnTimer = 0;
         this.spawnInterval = 15; // Spawn every 15 seconds - less frequent
+        this.currentRound = 1;
     }
 
     update(deltaTime, player, bounds) {
@@ -303,18 +335,24 @@ class PowerUpManager {
     spawnPowerUp(bounds) {
         const random = Math.random();
         let type;
-        if (random < 0.10) {
-            type = 'health';   // 10% chance
+
+        // Build available types based on current round
+        if (this.currentRound >= 7 && random < 0.08) {
+            type = 'missile';      // 8% chance (R7+)
+        } else if (this.currentRound >= 5 && random < 0.12) {
+            type = 'dualweapon';   // ~4% chance (R5+)
+        } else if (random < 0.10) {
+            type = 'health';       // 10% chance
         } else if (random < 0.20) {
-            type = 'weapon';   // 10% chance
+            type = 'weapon';       // 10% chance
         } else if (random < 0.23) {
-            type = 'shield';   // 10% chance
+            type = 'shield';       // 3% chance
         } else if (random < 0.33) {
-            type = 'speed';    // 10% chance
+            type = 'speed';        // 10% chance
         } else if (random < 0.58) {
-            type = 'ammo';     // 25% chance
+            type = 'ammo';         // 25% chance
         } else {
-            type = 'score';    // 52% chance
+            type = 'score';        // rest
         }
 
         const position = new THREE.Vector3(

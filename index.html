@@ -72,6 +72,19 @@
             <div id="ammo-container">
                 <span class="label">Ammo</span>
                 <span id="ammo">150</span>
+                <div id="missile-count" class="hidden">
+                    <span class="label">Missiles</span>
+                    <span id="missiles">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Boss Health Bar -->
+        <div id="boss-health-container" class="hidden">
+            <span class="boss-name">MATRIARCH</span>
+            <div id="boss-health-bar">
+                <div id="boss-health-fill"></div>
+                <span id="boss-health-text">800/800</span>
             </div>
         </div>
 
@@ -96,6 +109,7 @@
                 <h3>Controls</h3>
                 <p><kbd>↑↓←→</kbd> or <kbd>WASD</kbd> - Move</p>
                 <p><kbd>Space</kbd> - Fire</p>
+                <p><kbd>M</kbd> - Launch Missile</p>
                 <p><kbd>Shift</kbd> - Hold for Shield</p>
             </div>
             <div class="items-guide">
@@ -125,6 +139,14 @@
                         <span class="item-icon icon-health">❤️</span>
                         <span class="item-label">Health (rare)</span>
                     </div>
+                    <div class="item-entry">
+                        <span class="item-icon icon-dualweapon">🔥</span>
+                        <span class="item-label">6-Shot <small>(R5+)</small></span>
+                    </div>
+                    <div class="item-entry">
+                        <span class="item-icon icon-missile">🚀</span>
+                        <span class="item-label">Missiles <small>(R7+)</small></span>
+                    </div>
                 </div>
                 <h3>Hazards</h3>
                 <div class="items-grid">
@@ -148,6 +170,16 @@
                         <span class="item-icon icon-blackhole">🕳️</span>
                         <span class="item-label">Black Hole <small>(R7+)</small></span>
                     </div>
+                    <div class="item-entry">
+                        <span class="item-icon icon-matriarch">👑</span>
+                        <span class="item-label">Matriarch <small>(R10)</small></span>
+                    </div>
+                </div>
+            </div>
+            <div id="hall-of-fame">
+                <h3>Hall of Fame</h3>
+                <div id="hof-list">
+                    <p class="hof-empty">No games played yet</p>
                 </div>
             </div>
             <button id="start-btn">Start Game</button>

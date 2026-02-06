@@ -48,6 +48,38 @@ class PlayerShuttle {
         group.add(engine);
         this.engine = engine;
 
+        // Weapon visuals (hidden by default, shown when weapon upgrades collected)
+        const gunMat = new THREE.MeshPhongMaterial({ color: 0x00ff00, emissive: 0x00aa00, emissiveIntensity: 0.5 });
+
+        // Triple shot guns (3 forward barrels)
+        this.tripleGuns = new THREE.Group();
+        for (let i = -1; i <= 1; i++) {
+            const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.8, 6), gunMat);
+            barrel.rotation.x = Math.PI / 2;
+            barrel.position.set(i * 0.5, 0.4, 0);
+            this.tripleGuns.add(barrel);
+        }
+        this.tripleGuns.visible = false;
+        group.add(this.tripleGuns);
+
+        // Dual weapon guns (3 forward + 3 backward barrels)
+        this.dualGuns = new THREE.Group();
+        const dualMat = new THREE.MeshPhongMaterial({ color: 0xff4400, emissive: 0xaa2200, emissiveIntensity: 0.5 });
+        for (let i = -1; i <= 1; i++) {
+            // Forward barrels
+            const fwd = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.8, 6), dualMat);
+            fwd.rotation.x = Math.PI / 2;
+            fwd.position.set(i * 0.5, 0.4, 0);
+            this.dualGuns.add(fwd);
+            // Backward barrels
+            const bwd = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.8, 6), dualMat);
+            bwd.rotation.x = Math.PI / 2;
+            bwd.position.set(i * 0.5, -0.4, 0);
+            this.dualGuns.add(bwd);
+        }
+        this.dualGuns.visible = false;
+        group.add(this.dualGuns);
+
         this.mesh = group;
         scene.add(this.mesh);
 
@@ -69,6 +101,12 @@ class PlayerShuttle {
         this.maxShieldReserve = 30;
         this.speedBoost = false;
         this.weaponBoost = false;
+        this.dualWeapon = false; // 6-shot (triple both directions)
+        this.hasMissiles = false;
+        this.missiles = 0;
+        this.maxMissiles = 10;
+        this.missileFireRate = 0.6;
+        this.lastMissileTime = -999;
 
         // Shield visual effect
         this.shieldMesh = null;
@@ -117,6 +155,18 @@ class PlayerShuttle {
             this.engine.material.emissiveIntensity = 0.5;
         }
 
+        // Update weapon visuals
+        if (this.dualWeapon) {
+            this.tripleGuns.visible = false;
+            this.dualGuns.visible = true;
+        } else if (this.weaponBoost || this.weaponLevel > 1) {
+            this.tripleGuns.visible = true;
+            this.dualGuns.visible = false;
+        } else {
+            this.tripleGuns.visible = false;
+            this.dualGuns.visible = false;
+        }
+
         // Update shield visual
         this.updateShieldVisual(deltaTime, currentTime);
 
@@ -140,25 +190,34 @@ class PlayerShuttle {
     createLaser() {
         const lasers = [];
         const basePosition = this.mesh.position.clone();
-        const direction = new THREE.Vector3(0, 1, 0);  // Shoot upward in the game plane
+        const dirUp = new THREE.Vector3(0, 1, 0);
+        const dirDown = new THREE.Vector3(0, -1, 0);
 
-        if (this.weaponBoost || this.weaponLevel > 1) {
-            // Triple shot
+        if (this.dualWeapon) {
+            // 6-shot: triple forward + triple backward
             for (let i = -1; i <= 1; i++) {
-                const laser = new Laser(
-                    basePosition.clone().add(new THREE.Vector3(i * 0.5, 0, 0)),
-                    direction.clone(),
-                    this.scene
-                );
-                lasers.push(laser);
+                lasers.push(new Laser(basePosition.clone().add(new THREE.Vector3(i * 0.5, 0, 0)), dirUp.clone(), this.scene));
+                lasers.push(new Laser(basePosition.clone().add(new THREE.Vector3(i * 0.5, 0, 0)), dirDown.clone(), this.scene));
+            }
+        } else if (this.weaponBoost || this.weaponLevel > 1) {
+            // Triple shot forward
+            for (let i = -1; i <= 1; i++) {
+                lasers.push(new Laser(basePosition.clone().add(new THREE.Vector3(i * 0.5, 0, 0)), dirUp.clone(), this.scene));
             }
         } else {
             // Single shot
-            const laser = new Laser(basePosition, direction, this.scene);
-            lasers.push(laser);
+            lasers.push(new Laser(basePosition, dirUp, this.scene));
         }
 
         return lasers;
+    }
+
+    createMissile() {
+        if (!this.hasMissiles || this.missiles <= 0) return null;
+        this.missiles--;
+        const basePosition = this.mesh.position.clone();
+        const direction = new THREE.Vector3(0, 1, 0);
+        return new Missile(basePosition, direction, this.scene);
     }
 
     createShieldVisual() {
@@ -590,6 +649,362 @@ class EnemyDebris {
         this.velocity.multiplyScalar(0.98);
 
         return this.age >= this.lifetime;
+    }
+
+    destroy() {
+        this.scene.remove(this.mesh);
+    }
+}
+
+class Missile {
+    constructor(position, direction, scene) {
+        this.scene = scene;
+        this.radius = 0.4;
+        this.speed = 50;
+        this.damage = 150;
+        this.blastRadius = 12;
+        this.lifetime = 3;
+        this.age = 0;
+
+        // Create missile mesh
+        const group = new THREE.Group();
+
+        // Body
+        const bodyGeo = new THREE.CylinderGeometry(0.15, 0.15, 1.2, 6);
+        const bodyMat = new THREE.MeshPhongMaterial({ color: 0xff6600, emissive: 0xaa3300, shininess: 80 });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.rotation.x = Math.PI / 2;
+        group.add(body);
+
+        // Warhead
+        const headGeo = new THREE.ConeGeometry(0.18, 0.4, 6);
+        const headMat = new THREE.MeshPhongMaterial({ color: 0xff0000, emissive: 0xaa0000 });
+        const head = new THREE.Mesh(headGeo, headMat);
+        head.rotation.x = -Math.PI / 2;
+        head.position.y = 0.8;
+        group.add(head);
+
+        // Engine glow
+        const glowGeo = new THREE.SphereGeometry(0.25, 8, 8);
+        const glowMat = new THREE.MeshBasicMaterial({ color: 0xff4400, transparent: true, opacity: 0.6 });
+        this.glow = new THREE.Mesh(glowGeo, glowMat);
+        this.glow.position.y = -0.7;
+        group.add(this.glow);
+
+        this.mesh = group;
+        this.mesh.position.copy(position);
+        scene.add(this.mesh);
+
+        this.velocity = direction.multiplyScalar(this.speed);
+    }
+
+    update(deltaTime) {
+        this.age += deltaTime;
+        this.mesh.position.add(this.velocity.clone().multiplyScalar(deltaTime));
+
+        // Engine flicker
+        this.glow.material.opacity = 0.4 + Math.sin(this.age * 30) * 0.2;
+
+        return this.age > this.lifetime;
+    }
+
+    destroy() {
+        this.scene.remove(this.mesh);
+    }
+}
+
+class Matriarch {
+    constructor(position, scene, target) {
+        this.scene = scene;
+        this.target = target;
+        this.health = 800;
+        this.maxHealth = 800;
+        this.radius = 5;
+        this.mass = 5;
+        this.maxSpeed = 15;
+        this.damage = 10;
+        this.currentRound = 10;
+
+        // Attack patterns
+        this.attackPhase = 'chase'; // 'chase', 'spread', 'barrage'
+        this.phaseTimer = 0;
+        this.phaseDuration = 5;
+        this.spreadFireTimer = 0;
+        this.barrageTimer = 0;
+
+        // Shield cycle: 7s on, 3s off (70% uptime)
+        this.shieldCycleTimer = 0;
+        this.shieldOnDuration = 7;
+        this.shieldOffDuration = 3;
+        this.shieldActive = true;
+
+        // Create Matriarch ship
+        const group = new THREE.Group();
+
+        // Main hull - large menacing shape
+        const hullGeometry = new THREE.DodecahedronGeometry(3, 0);
+        const hullMaterial = new THREE.MeshPhongMaterial({
+            color: 0x660066,
+            emissive: 0x330033,
+            shininess: 120,
+            flatShading: true
+        });
+        const hull = new THREE.Mesh(hullGeometry, hullMaterial);
+        group.add(hull);
+        this.hull = hull;
+
+        // Central eye/core
+        const coreGeometry = new THREE.SphereGeometry(1, 16, 16);
+        const coreMaterial = new THREE.MeshPhongMaterial({
+            color: 0xff0044,
+            emissive: 0xff0022,
+            emissiveIntensity: 1.5,
+            shininess: 200
+        });
+        const core = new THREE.Mesh(coreGeometry, coreMaterial);
+        core.position.z = 2;
+        group.add(core);
+        this.core = core;
+
+        // Side weapon pods
+        const podGeometry = new THREE.OctahedronGeometry(1, 0);
+        const podMaterial = new THREE.MeshPhongMaterial({
+            color: 0x880088,
+            emissive: 0x440044,
+            shininess: 80
+        });
+        for (let i = 0; i < 4; i++) {
+            const angle = (Math.PI * 2 * i) / 4;
+            const pod = new THREE.Mesh(podGeometry, podMaterial);
+            pod.position.set(Math.cos(angle) * 3.5, Math.sin(angle) * 3.5, 0);
+            group.add(pod);
+        }
+
+        // Spinal cannons
+        const cannonGeometry = new THREE.CylinderGeometry(0.2, 0.3, 2, 6);
+        const cannonMaterial = new THREE.MeshPhongMaterial({
+            color: 0xff4400,
+            emissive: 0xaa2200
+        });
+        for (let i = -1; i <= 1; i++) {
+            const cannon = new THREE.Mesh(cannonGeometry, cannonMaterial);
+            cannon.position.set(i * 2, 0, 3);
+            cannon.rotation.x = Math.PI / 2;
+            group.add(cannon);
+        }
+
+        // Shield visual
+        const shieldGeometry = new THREE.SphereGeometry(6, 32, 32);
+        const shieldMaterial = new THREE.MeshBasicMaterial({
+            color: 0xff00ff,
+            transparent: true,
+            opacity: 0,
+            side: THREE.DoubleSide,
+            blending: THREE.AdditiveBlending
+        });
+        this.shieldMesh = new THREE.Mesh(shieldGeometry, shieldMaterial);
+        group.add(this.shieldMesh);
+
+        this.mesh = group;
+        this.mesh.position.copy(position);
+        scene.add(this.mesh);
+
+        this.velocity = new THREE.Vector3();
+        this.lastFireTime = 0;
+        this.fireRate = 0.4;
+        this.time = 0;
+    }
+
+    update(deltaTime, currentTime) {
+        this.time += deltaTime;
+        this.phaseTimer += deltaTime;
+
+        // Core orbits visibly around hull (weak spot)
+        const coreAngle = this.time * 1.2;
+        const coreRadius = 4;
+        this.core.position.set(
+            Math.cos(coreAngle) * coreRadius,
+            Math.sin(coreAngle) * coreRadius,
+            2
+        );
+        this.core.material.emissiveIntensity = 1.0 + Math.sin(this.time * 5) * 0.5;
+
+        // Hull slow rotation
+        this.hull.rotation.z += deltaTime * 0.3;
+
+        // Shield cycle: independent of attack phase
+        this.shieldCycleTimer += deltaTime;
+        const shieldCycleLength = this.shieldOnDuration + this.shieldOffDuration;
+        if (this.shieldCycleTimer >= shieldCycleLength) {
+            this.shieldCycleTimer -= shieldCycleLength;
+        }
+        this.shieldActive = this.shieldCycleTimer < this.shieldOnDuration;
+
+        // Shield visual
+        if (this.shieldActive) {
+            this.shieldMesh.material.opacity = 0.25 + Math.sin(this.time * 6) * 0.1;
+            this.shieldMesh.rotation.y += deltaTime * 2;
+            // Slow health regen while shielded
+            this.health = Math.min(this.health + 10 * deltaTime, this.maxHealth);
+        } else {
+            // Shield is down - core pulses brightly to signal vulnerability
+            this.shieldMesh.material.opacity = 0;
+            this.core.material.emissiveIntensity = 1.5 + Math.sin(this.time * 10) * 0.5;
+        }
+
+        // Phase transitions (attack patterns only, shield is separate)
+        if (this.phaseTimer >= this.phaseDuration) {
+            this.phaseTimer = 0;
+            const phases = ['chase', 'spread', 'barrage'];
+            const currentIndex = phases.indexOf(this.attackPhase);
+            this.attackPhase = phases[(currentIndex + 1) % phases.length];
+
+            if (this.attackPhase === 'barrage') {
+                this.phaseDuration = 4;
+            } else {
+                this.phaseDuration = 5;
+            }
+        }
+
+        const lasers = [];
+
+        if (this.target && this.target.mesh) {
+            const direction = new THREE.Vector3()
+                .subVectors(this.target.mesh.position, this.mesh.position)
+                .normalize();
+            const distance = this.mesh.position.distanceTo(this.target.mesh.position);
+
+            // Movement based on phase
+            if (this.attackPhase === 'chase') {
+                if (distance > 15) {
+                    this.velocity.add(direction.clone().multiplyScalar(15 * deltaTime));
+                } else if (distance < 8) {
+                    this.velocity.sub(direction.clone().multiplyScalar(10 * deltaTime));
+                }
+                // Single aimed shots while chasing
+                if (currentTime - this.lastFireTime > this.fireRate) {
+                    this.lastFireTime = currentTime;
+                    lasers.push(this.createLaser(direction.clone()));
+                }
+            } else if (this.attackPhase === 'spread') {
+                // Circle strafe
+                const perpendicular = new THREE.Vector3(-direction.y, direction.x, 0);
+                this.velocity.add(perpendicular.multiplyScalar(12 * deltaTime));
+                if (distance > 25) {
+                    this.velocity.add(direction.clone().multiplyScalar(8 * deltaTime));
+                }
+                // Spread shot - 5 lasers in a fan
+                this.spreadFireTimer += deltaTime;
+                if (this.spreadFireTimer > 0.8) {
+                    this.spreadFireTimer = 0;
+                    for (let i = -2; i <= 2; i++) {
+                        const angle = i * 0.25;
+                        const spreadDir = direction.clone();
+                        const cos = Math.cos(angle);
+                        const sin = Math.sin(angle);
+                        const rotated = new THREE.Vector3(
+                            spreadDir.x * cos - spreadDir.y * sin,
+                            spreadDir.x * sin + spreadDir.y * cos,
+                            0
+                        ).normalize();
+                        lasers.push(this.createLaser(rotated));
+                    }
+                }
+            } else if (this.attackPhase === 'barrage') {
+                // Stay still-ish, rapid fire
+                if (distance > 20) {
+                    this.velocity.add(direction.clone().multiplyScalar(5 * deltaTime));
+                }
+                this.barrageTimer += deltaTime;
+                if (this.barrageTimer > 0.15) {
+                    this.barrageTimer = 0;
+                    // Slightly random aimed shots
+                    const randomDir = direction.clone();
+                    randomDir.x += (Math.random() - 0.5) * 0.3;
+                    randomDir.y += (Math.random() - 0.5) * 0.3;
+                    randomDir.normalize();
+                    lasers.push(this.createLaser(randomDir));
+                }
+            }
+
+            // Look at player
+            this.mesh.lookAt(this.target.mesh.position);
+        }
+
+        // Limit speed
+        if (this.velocity.length() > this.maxSpeed) {
+            this.velocity.normalize().multiplyScalar(this.maxSpeed);
+        }
+
+        // Apply velocity
+        this.mesh.position.add(this.velocity.clone().multiplyScalar(deltaTime));
+
+        // Friction
+        this.velocity.multiplyScalar(0.97);
+
+        return lasers.length > 0 ? lasers : null;
+    }
+
+    createLaser(direction) {
+        const laser = new Laser(
+            this.mesh.position.clone().add(direction.clone().multiplyScalar(4)),
+            direction,
+            this.scene
+        );
+        laser.mesh.material.color.setHex(0xff00ff);
+        laser.damage = this.damage;
+        laser.speed = 60;
+        laser.velocity = direction.multiplyScalar(60);
+        return laser;
+    }
+
+    getCoreWorldPosition() {
+        const worldPos = new THREE.Vector3();
+        this.core.getWorldPosition(worldPos);
+        return worldPos;
+    }
+
+    takeDamage(damage, hitPosition) {
+        // Shield on = completely invulnerable
+        if (this.shieldActive) {
+            return false;
+        }
+        // Shield down: only take damage if hit near the core (weak spot)
+        if (hitPosition) {
+            const corePos = this.getCoreWorldPosition();
+            const distToCore = hitPosition.distanceTo(corePos);
+            if (distToCore > 4) {
+                return false; // Missed the weak spot
+            }
+        }
+        this.health -= damage;
+        return this.health <= 0;
+    }
+
+    break() {
+        const fragments = [];
+        const pos = this.mesh.position.clone();
+
+        // Many debris pieces for the big boss
+        const hullGeo = new THREE.TetrahedronGeometry(0.6, 0);
+        const hullMat = new THREE.MeshPhongMaterial({ color: 0x660066, emissive: 0x330033, shininess: 80 });
+        for (let i = 0; i < 8; i++) {
+            const angle = (Math.PI * 2 * i) / 8;
+            const offset = new THREE.Vector3(Math.cos(angle) * 2, Math.sin(angle) * 2, 0);
+            const frag = new EnemyDebris(pos.clone().add(offset), hullGeo, hullMat, this.scene);
+            frag.velocity.copy(offset.normalize().multiplyScalar(12 + Math.random() * 8));
+            fragments.push(frag);
+        }
+
+        // Core fragment
+        const coreGeo = new THREE.SphereGeometry(0.4, 8, 8);
+        const coreMat = new THREE.MeshPhongMaterial({ color: 0xff0044, emissive: 0xff0022 });
+        const coreFrag = new EnemyDebris(pos.clone(), coreGeo, coreMat, this.scene);
+        coreFrag.velocity.set(0, 5, 0);
+        fragments.push(coreFrag);
+
+        this.destroy();
+        return fragments;
     }
 
     destroy() {

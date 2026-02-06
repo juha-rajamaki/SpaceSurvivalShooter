@@ -159,6 +159,27 @@ body {
     text-shadow: 0 0 8px rgba(255, 165, 0, 0.4);
 }
 
+#missile-count {
+    margin-top: 4px;
+}
+
+#missile-count .label {
+    font-size: 12px;
+    display: block;
+    color: rgba(255, 100, 0, 0.7);
+}
+
+#missiles {
+    font-family: 'Orbitron', sans-serif;
+    color: #ff4400;
+    font-size: 18px;
+    font-weight: 700;
+    text-shadow: 0 0 8px rgba(255, 68, 0, 0.4);
+}
+
+.icon-dualweapon { border-color: #ff4400; box-shadow: 0 0 8px rgba(255,68,0,0.4); }
+.icon-missile { border-color: #ff2200; box-shadow: 0 0 8px rgba(255,34,0,0.4); }
+
 #round {
     font-family: 'Orbitron', sans-serif;
     color: #b0b0ff;
@@ -425,6 +446,58 @@ kbd {
 .icon-enemy     { border-color: #ff0000; box-shadow: 0 0 8px rgba(255,0,0,0.4); }
 .icon-mine      { border-color: #ff4444; box-shadow: 0 0 8px rgba(255,68,68,0.4); }
 .icon-blackhole { border-color: #ff4400; box-shadow: 0 0 8px rgba(255,68,0,0.4); }
+.icon-matriarch { border-color: #ff00ff; box-shadow: 0 0 12px rgba(255,0,255,0.6); }
+
+/* Boss Health Bar */
+#boss-health-container {
+    position: absolute;
+    top: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    z-index: 50;
+}
+
+.boss-name {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 18px;
+    font-weight: 900;
+    color: #ff00ff;
+    letter-spacing: 4px;
+    text-shadow: 0 0 12px rgba(255, 0, 255, 0.8);
+    display: block;
+    margin-bottom: 4px;
+}
+
+#boss-health-bar {
+    width: 400px;
+    height: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    border: 2px solid #ff00ff;
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 10px rgba(255, 0, 255, 0.3);
+}
+
+#boss-health-fill {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, #ff0044, #ff00ff);
+    transition: width 0.2s ease;
+}
+
+#boss-health-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: #ffffff;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.9);
+}
 
 .item-label {
     font-family: 'Rajdhani', sans-serif;
@@ -536,6 +609,45 @@ kbd {
     text-transform: uppercase;
 }
 
+/* Round Stats */
+.round-stats {
+    text-align: center;
+    margin-bottom: 5px;
+}
+
+.round-stats h3 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    letter-spacing: 2px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 24px;
+    margin-bottom: 12px;
+}
+
+.stat-entry {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+    text-align: left;
+}
+
+.round-bonus {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffaa00;
+    text-shadow: 0 0 10px rgba(255, 170, 0, 0.6);
+    animation: pulse 1s infinite;
+    margin-top: 6px;
+}
+
 @keyframes roundItemFadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
@@ -544,6 +656,73 @@ kbd {
 @keyframes roundItemPulse {
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.08); }
+}
+
+/* Hall of Fame */
+#hall-of-fame {
+    margin: 15px 0;
+    max-width: 350px;
+    width: 100%;
+}
+
+#hall-of-fame h3 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 16px;
+    color: #ffd740;
+    margin-bottom: 8px;
+    letter-spacing: 2px;
+    text-shadow: 0 0 8px rgba(255, 215, 64, 0.4);
+}
+
+#hof-list {
+    background: rgba(0, 10, 30, 0.6);
+    border: 1px solid rgba(255, 215, 64, 0.2);
+    border-radius: 8px;
+    padding: 8px 12px;
+    max-height: 180px;
+    overflow-y: auto;
+}
+
+.hof-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px;
+}
+
+.hof-entry:last-child {
+    border-bottom: none;
+}
+
+.hof-rank {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 12px;
+    color: #ffd740;
+    width: 28px;
+    font-weight: 700;
+}
+
+.hof-score {
+    flex: 1;
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.hof-round {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 12px;
+    margin-left: 8px;
+}
+
+.hof-empty {
+    color: rgba(255, 255, 255, 0.3);
+    font-style: italic;
+    font-size: 13px;
+    text-align: center;
+    padding: 8px;
 }
 
 #start-btn, #restart-btn {
