@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Survival Shooter</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- UI Overlay -->
+        <div id="ui-overlay">
+            <div id="stats">
+                <div class="stat-item">
+                    <span class="label">Health:</span>
+                    <div id="health-bar">
+                        <div id="health-fill"></div>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <span class="label">Score:</span>
+                    <span id="score">0</span>
+                    <span id="multiplier" class="hidden">x2</span>
+                </div>
+                <div class="stat-item">
+                    <span class="label">Wave:</span>
+                    <span id="wave">1</span>
+                </div>
+            </div>
+
+            <div id="power-ups">
+                <div id="active-powerups"></div>
+            </div>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="game-over" class="hidden">
+            <h1>GAME OVER</h1>
+            <p>Final Score: <span id="final-score">0</span></p>
+            <p>Waves Survived: <span id="final-wave">0</span></p>
+            <button id="restart-btn">Play Again</button>
+        </div>
+
+        <!-- Start Screen -->
+        <div id="start-screen">
+            <h1>SPACE SURVIVAL</h1>
+            <div class="controls">
+                <h3>Controls</h3>
+                <p><kbd>↑↓←→</kbd> or <kbd>WASD</kbd> - Move</p>
+                <p><kbd>Space</kbd> - Fire</p>
+                <p><kbd>Shift</kbd> - Boost</p>
+                <p><kbd>P</kbd> - Pause</p>
+            </div>
+            <button id="start-btn">Start Game</button>
+        </div>
+    </div>
+
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <!-- Game Scripts -->
+    <script src="particles.js"></script>
+    <script src="physics.js"></script>
+    <script src="entities.js"></script>
+    <script src="powerups.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>

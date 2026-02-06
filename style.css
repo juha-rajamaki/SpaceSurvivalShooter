@@ -1,0 +1,227 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    overflow: hidden;
+    background: #000;
+}
+
+#game-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+}
+
+#gameCanvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* UI Overlay */
+#ui-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 20px;
+    pointer-events: none;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+}
+
+#stats {
+    display: flex;
+    gap: 30px;
+    font-size: 18px;
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.label {
+    font-weight: bold;
+    color: #00ffff;
+}
+
+#health-bar {
+    width: 150px;
+    height: 20px;
+    background: rgba(255,255,255,0.2);
+    border: 2px solid #00ffff;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+#health-fill {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00);
+    transition: width 0.3s ease;
+}
+
+#score {
+    color: #ffff00;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+#multiplier {
+    color: #00ff00;
+    margin-left: 10px;
+    font-size: 20px;
+    animation: pulse 0.5s infinite;
+}
+
+#wave {
+    color: #ff00ff;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+#power-ups {
+    position: absolute;
+    top: 80px;
+    left: 20px;
+}
+
+#active-powerups {
+    display: flex;
+    gap: 10px;
+}
+
+.powerup-indicator {
+    padding: 5px 10px;
+    background: rgba(255,255,255,0.2);
+    border: 2px solid;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.powerup-shield { border-color: #00aaff; color: #00aaff; }
+.powerup-weapon { border-color: #ff0000; color: #ff0000; }
+.powerup-speed { border-color: #ffff00; color: #ffff00; }
+.powerup-multiplier { border-color: #00ff00; color: #00ff00; }
+
+/* Start Screen */
+#start-screen {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: white;
+    background: rgba(0,0,0,0.8);
+    padding: 40px;
+    border-radius: 20px;
+    border: 2px solid #00ffff;
+}
+
+#start-screen h1 {
+    font-size: 48px;
+    margin-bottom: 30px;
+    background: linear-gradient(45deg, #00ffff, #ff00ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.controls {
+    margin: 30px 0;
+    text-align: left;
+}
+
+.controls h3 {
+    color: #00ffff;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.controls p {
+    margin: 10px 0;
+    color: #ffffff;
+}
+
+kbd {
+    background: #333;
+    padding: 3px 8px;
+    border-radius: 3px;
+    border: 1px solid #555;
+    font-family: monospace;
+    margin: 0 3px;
+}
+
+#start-btn, #restart-btn {
+    background: linear-gradient(45deg, #00ffff, #0088ff);
+    color: white;
+    border: none;
+    padding: 15px 40px;
+    font-size: 20px;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+#start-btn:hover, #restart-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 20px rgba(0,255,255,0.5);
+}
+
+/* Game Over Screen */
+#game-over {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: white;
+    background: rgba(0,0,0,0.9);
+    padding: 40px;
+    border-radius: 20px;
+    border: 2px solid #ff0000;
+}
+
+#game-over h1 {
+    font-size: 48px;
+    color: #ff0000;
+    margin-bottom: 20px;
+    animation: glow 1s infinite;
+}
+
+#game-over p {
+    font-size: 24px;
+    margin: 15px 0;
+}
+
+#final-score {
+    color: #ffff00;
+    font-weight: bold;
+}
+
+#final-wave {
+    color: #ff00ff;
+    font-weight: bold;
+}
+
+.hidden {
+    display: none !important;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+@keyframes glow {
+    0%, 100% { text-shadow: 0 0 10px rgba(255,0,0,0.8); }
+    50% { text-shadow: 0 0 20px rgba(255,0,0,1); }
+}
