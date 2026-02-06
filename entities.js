@@ -112,8 +112,12 @@ class PlayerShuttle {
         // Handle firing
         if (input.fire && currentTime - this.lastFireTime > this.fireRate) {
             console.log('Creating lasers at time:', currentTime);
+            console.log('Player position:', this.mesh.position.x, this.mesh.position.y, this.mesh.position.z);
+            console.log('Scene exists:', !!this.scene);
             this.lastFireTime = currentTime;
-            return this.createLaser();
+            const lasers = this.createLaser();
+            console.log('createLaser returned:', lasers);
+            return lasers;
         } else if (input.fire) {
             console.log('Fire pressed but cooldown active. Time since last fire:', currentTime - this.lastFireTime, 'Required:', this.fireRate);
         }
@@ -174,24 +178,21 @@ class Laser {
         this.lifetime = 2;
         this.age = 0;
 
-        // Create laser mesh
-        const geometry = new THREE.CapsuleGeometry(0.1, 1, 4, 8);
+        // Create laser mesh - MADE BIGGER FOR VISIBILITY
+        const geometry = new THREE.BoxGeometry(0.5, 2, 0.5); // Changed to box and made bigger
         const material = new THREE.MeshBasicMaterial({
-            color: 0x00ff00,
-            emissive: 0x00ff00,
-            emissiveIntensity: 2
+            color: 0xff0000  // Bright red for maximum visibility
         });
         this.mesh = new THREE.Mesh(geometry, material);
         this.mesh.position.copy(position);
-        this.mesh.rotation.x = Math.PI / 2;
         scene.add(this.mesh);
 
-        // Add glow
-        const glowGeometry = new THREE.SphereGeometry(0.3, 8, 8);
+        // Add glow - MADE BIGGER
+        const glowGeometry = new THREE.SphereGeometry(1, 8, 8); // Made much bigger
         const glowMaterial = new THREE.MeshBasicMaterial({
-            color: 0x00ff00,
+            color: 0xffff00,  // Yellow glow
             transparent: true,
-            opacity: 0.3
+            opacity: 0.5
         });
         this.glow = new THREE.Mesh(glowGeometry, glowMaterial);
         this.mesh.add(this.glow);
