@@ -292,11 +292,6 @@ class Game {
         // Create player
         this.player = new PlayerShuttle(this.scene);
 
-        // TEST: Spawn a test ammo crate near the player to verify visibility
-        const testAmmoPos = new THREE.Vector3(10, 10, 0);
-        this.powerUpManager.spawnPowerUpAt(testAmmoPos, 'ammo');
-        console.log('Test ammo crate spawned at (10, 10, 0)');
-
         // Start first round
         this.startRound();
 
@@ -739,7 +734,7 @@ class Game {
             window.soundManager.playHit();
             // Flash effect
             this.player.mesh.traverse(child => {
-                if (child.material) {
+                if (child.material && child.material.emissive) {
                     const originalEmissive = child.material.emissive.clone();
                     child.material.emissive.setHex(0xff0000);
                     setTimeout(() => {

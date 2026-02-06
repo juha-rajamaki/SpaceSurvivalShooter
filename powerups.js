@@ -81,10 +81,12 @@ class PowerUp {
             this.glow = new THREE.Mesh(glowGeometry, glowMaterial);
             this.mesh.add(this.glow);
 
-            // Inner core
+            // Inner core - use MeshPhongMaterial so we can animate emissive
             const coreGeometry = new THREE.SphereGeometry(0.3, 8, 8);
-            const coreMaterial = new THREE.MeshBasicMaterial({
-                color: 0xffffff
+            const coreMaterial = new THREE.MeshPhongMaterial({
+                color: 0xffffff,
+                emissive: 0xffffff,
+                emissiveIntensity: 0.5
             });
             this.core = new THREE.Mesh(coreGeometry, coreMaterial);
             this.mesh.add(this.core);
@@ -97,11 +99,6 @@ class PowerUp {
         this.bobAmount = 0.5;
         this.initialY = position.y;
         this.time = 0;
-
-        // Debug logging for ammo crates
-        if (type === 'ammo') {
-            console.log('Ammo crate spawned at:', position.x.toFixed(2), position.y.toFixed(2));
-        }
     }
 
     update(deltaTime) {
