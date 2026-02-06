@@ -110,9 +110,17 @@ class PlayerShuttle {
         }
 
         // Handle firing
-        if (input.fire && currentTime - this.lastFireTime > this.fireRate) {
-            this.lastFireTime = currentTime;
-            return this.createLaser();
+        if (input.fire) {
+            const timeSinceLastFire = currentTime - this.lastFireTime;
+            console.warn('PLAYER: Fire pressed! Time since last:', timeSinceLastFire, 'Required:', this.fireRate);
+
+            if (timeSinceLastFire > this.fireRate) {
+                console.warn('PLAYER: FIRING!');
+                this.lastFireTime = currentTime;
+                const lasers = this.createLaser();
+                console.warn('PLAYER: Created', lasers.length, 'lasers');
+                return lasers;
+            }
         }
 
         return null;
@@ -163,20 +171,18 @@ class Laser {
         this.radius = 0.2;
         this.speed = 80;
         this.damage = 35;  // Increased from 25 - more effective!
-        this.lifetime = 2;
+        this.lifetime = 5;  // Increased from 2 to 5 seconds
         this.age = 0;
 
-        // Create laser mesh
-        const geometry = new THREE.CapsuleGeometry(0.15, 1.5, 4, 8); // Slightly larger than before
-        const material = new THREE.MeshPhongMaterial({
-            color: 0x00ffff,  // Cyan color
-            emissive: 0x00ffff,
-            emissiveIntensity: 2
+        // Create laser mesh - BIGGER FOR TESTING
+        const geometry = new THREE.BoxGeometry(1, 3, 1);  // Big box for visibility
+        const material = new THREE.MeshBasicMaterial({
+            color: 0xff00ff  // Bright magenta for maximum visibility
         });
         this.mesh = new THREE.Mesh(geometry, material);
         this.mesh.position.copy(position);
-        this.mesh.rotation.x = Math.PI / 2;
         scene.add(this.mesh);
+        console.error('LASER CREATED at position:', position.x, position.y, position.z);
 
         // Add glow
         const glowGeometry = new THREE.SphereGeometry(0.4, 8, 8);

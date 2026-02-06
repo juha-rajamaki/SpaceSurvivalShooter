@@ -127,9 +127,10 @@ class Game {
         // Keyboard controls
         document.addEventListener('keydown', (e) => {
             // Handle space key specially (both e.key and e.code)
-            if (e.key === ' ' || e.code === 'Space') {
+            if (e.key === ' ' || e.code === 'Space' || e.keyCode === 32) {
                 e.preventDefault();
                 this.input.fire = true;
+                console.warn('SPACE PRESSED! Fire is now:', this.input.fire);
                 return;
             }
 
@@ -262,6 +263,24 @@ class Game {
 
         // Create player
         this.player = new PlayerShuttle(this.scene);
+
+        // TEST: Create a visible test object
+        const testGeometry = new THREE.BoxGeometry(5, 5, 5);
+        const testMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        const testMesh = new THREE.Mesh(testGeometry, testMaterial);
+        testMesh.position.set(0, 10, 0);  // Above center
+        this.scene.add(testMesh);
+        console.error('TEST: Added red box to scene at position 0, 10, 0');
+
+        // TEST: Auto-fire to verify system works
+        setTimeout(() => {
+            console.error('AUTO-FIRE TEST: Setting fire to true');
+            this.input.fire = true;
+            setTimeout(() => {
+                this.input.fire = false;
+                console.error('AUTO-FIRE TEST: Set fire back to false');
+            }, 100);
+        }, 2000);  // 2 seconds after game start
 
         // Start first wave
         this.startWave();
@@ -403,9 +422,15 @@ class Game {
 
         // Update player
         if (this.player) {
+            // Debug input state
+            if (this.input.fire) {
+                console.warn('UPDATE: Fire button is pressed!');
+            }
+
             // Handle player update and firing first to get acceleration
             const newLasers = this.player.update(deltaTime, this.input, currentTime);
             if (newLasers) {
+                console.warn('UPDATE: Created', newLasers.length, 'new lasers!');
                 this.lasers.push(...newLasers);
                 window.soundManager.playLaser();
             }
