@@ -392,6 +392,107 @@ class SoundManager {
         oscillator.stop(now + 0.2);
     }
 
+    playMineExplosion() {
+        if (!this.enabled || !this.sfxEnabled || !this.audioContext) return;
+
+        const now = this.audioContext.currentTime;
+
+        // Layer 1: massive noise burst
+        const bufferSize = this.audioContext.sampleRate * 0.8;
+        const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
+        const output = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            output[i] = (Math.random() - 0.5) * 2;
+        }
+
+        const noise = this.audioContext.createBufferSource();
+        noise.buffer = buffer;
+        const filter = this.audioContext.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(300, now);
+        filter.frequency.exponentialRampToValueAtTime(30, now + 0.8);
+        const noiseGain = this.audioContext.createGain();
+        noise.connect(filter);
+        filter.connect(noiseGain);
+        noiseGain.connect(this.sfxGainNode);
+        noiseGain.gain.setValueAtTime(0.45, now);
+        noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
+        noise.start(now);
+        noise.stop(now + 0.8);
+
+        // Layer 2: deep sub-bass thump
+        const thump = this.audioContext.createOscillator();
+        const thumpGain = this.audioContext.createGain();
+        thump.type = 'sine';
+        thump.frequency.setValueAtTime(80, now);
+        thump.frequency.exponentialRampToValueAtTime(15, now + 0.5);
+        thump.connect(thumpGain);
+        thumpGain.connect(this.sfxGainNode);
+        thumpGain.gain.setValueAtTime(0.4, now);
+        thumpGain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+        thump.start(now);
+        thump.stop(now + 0.5);
+
+        // Layer 3: secondary crackle (delayed)
+        const crack = this.audioContext.createBufferSource();
+        const crackBuf = this.audioContext.createBuffer(1, Math.floor(this.audioContext.sampleRate * 0.4), this.audioContext.sampleRate);
+        const crackData = crackBuf.getChannelData(0);
+        for (let i = 0; i < crackData.length; i++) {
+            crackData[i] = (Math.random() - 0.5) * 2;
+        }
+        crack.buffer = crackBuf;
+        const crackFilter = this.audioContext.createBiquadFilter();
+        crackFilter.type = 'bandpass';
+        crackFilter.frequency.value = 800;
+        crackFilter.Q.value = 2;
+        const crackGain = this.audioContext.createGain();
+        crack.connect(crackFilter);
+        crackFilter.connect(crackGain);
+        crackGain.connect(this.sfxGainNode);
+        crackGain.gain.setValueAtTime(0.01, now);
+        crackGain.gain.setValueAtTime(0.2, now + 0.1);
+        crackGain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+        crack.start(now);
+        crack.stop(now + 0.5);
+
+        // Layer 4: resonant ring-out
+        const ring = this.audioContext.createOscillator();
+        const ringGain = this.audioContext.createGain();
+        ring.type = 'sine';
+        ring.frequency.setValueAtTime(200, now);
+        ring.frequency.exponentialRampToValueAtTime(40, now + 0.6);
+        ring.connect(ringGain);
+        ringGain.connect(this.sfxGainNode);
+        ringGain.gain.setValueAtTime(0.15, now);
+        ringGain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+        ring.start(now);
+        ring.stop(now + 0.6);
+    }
+
+    playCountdownBeep(secondsLeft) {
+        if (!this.enabled || !this.sfxEnabled || !this.audioContext) return;
+
+        const now = this.audioContext.currentTime;
+        const oscillator = this.audioContext.createOscillator();
+        const gainNode = this.audioContext.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(this.sfxGainNode);
+
+        oscillator.type = 'sine';
+        // Higher pitch on the final beep (1 second left)
+        const freq = secondsLeft <= 1 ? 1200 : 800;
+        const duration = secondsLeft <= 1 ? 0.3 : 0.15;
+
+        oscillator.frequency.setValueAtTime(freq, now);
+
+        gainNode.gain.setValueAtTime(0.25, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + duration);
+
+        oscillator.start(now);
+        oscillator.stop(now + duration);
+    }
+
     playGameOver() {
         if (!this.enabled || !this.sfxEnabled || !this.audioContext) return;
 

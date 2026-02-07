@@ -50,6 +50,7 @@ class PlayerShuttle {
 
         // Weapon visuals (hidden by default, shown when weapon upgrades collected)
         const gunMat = new THREE.MeshPhongMaterial({ color: 0x00ff00, emissive: 0x00aa00, emissiveIntensity: 0.5 });
+        const damagedGunMat = new THREE.MeshPhongMaterial({ color: 0x553300, emissive: 0x331100, emissiveIntensity: 0.3 });
 
         // Triple shot guns (3 forward barrels)
         this.tripleGuns = new THREE.Group();
@@ -79,6 +80,61 @@ class PlayerShuttle {
         }
         this.dualGuns.visible = false;
         group.add(this.dualGuns);
+
+        // Octo weapon guns (6-shot + 2 diagonal barrels)
+        this.octoGuns = new THREE.Group();
+        const octoMat = new THREE.MeshPhongMaterial({ color: 0xff00ff, emissive: 0xaa00aa, emissiveIntensity: 0.5 });
+        for (let i = -1; i <= 1; i++) {
+            const fwd = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.8, 6), octoMat);
+            fwd.rotation.x = Math.PI / 2;
+            fwd.position.set(i * 0.5, 0.4, 0);
+            this.octoGuns.add(fwd);
+            const bwd = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.8, 6), octoMat);
+            bwd.rotation.x = Math.PI / 2;
+            bwd.position.set(i * 0.5, -0.4, 0);
+            this.octoGuns.add(bwd);
+        }
+        // Diagonal barrels
+        const diagRight = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.8, 6), octoMat);
+        diagRight.rotation.z = -Math.PI / 4;
+        diagRight.position.set(0.8, 0.3, 0);
+        this.octoGuns.add(diagRight);
+        const diagLeft = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.8, 6), octoMat);
+        diagLeft.rotation.z = Math.PI / 4;
+        diagLeft.position.set(0.8, -0.3, 0);
+        this.octoGuns.add(diagLeft);
+        this.octoGuns.visible = false;
+        group.add(this.octoGuns);
+
+        // Damaged gun overlays (shown over disabled barrels)
+        this.damagedOverlay = new THREE.Group();
+        // Damaged diagonal barrels (for octo->dual downgrade)
+        this.damagedDiagRight = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.8, 6), damagedGunMat);
+        this.damagedDiagRight.rotation.z = -Math.PI / 4;
+        this.damagedDiagRight.position.set(0.8, 0.3, 0);
+        this.damagedOverlay.add(this.damagedDiagRight);
+        this.damagedDiagLeft = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.8, 6), damagedGunMat);
+        this.damagedDiagLeft.rotation.z = Math.PI / 4;
+        this.damagedDiagLeft.position.set(0.8, -0.3, 0);
+        this.damagedOverlay.add(this.damagedDiagLeft);
+        // Damaged backward barrels (for dual->triple downgrade)
+        for (let i = -1; i <= 1; i++) {
+            const bwd = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.8, 6), damagedGunMat);
+            bwd.rotation.x = Math.PI / 2;
+            bwd.position.set(i * 0.5, -0.4, 0);
+            bwd.userData.isDamagedBack = true;
+            this.damagedOverlay.add(bwd);
+        }
+        // Damaged side barrels (for triple->single downgrade)
+        for (let i of [-1, 1]) {
+            const side = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.8, 6), damagedGunMat);
+            side.rotation.x = Math.PI / 2;
+            side.position.set(i * 0.5, 0.4, 0);
+            side.userData.isDamagedSide = true;
+            this.damagedOverlay.add(side);
+        }
+        this.damagedOverlay.visible = false;
+        group.add(this.damagedOverlay);
 
         this.mesh = group;
         scene.add(this.mesh);
@@ -156,16 +212,61 @@ class PlayerShuttle {
             this.engine.material.emissiveIntensity = 0.5;
         }
 
-        // Update weapon visuals
-        if (this.dualWeapon) {
-            this.tripleGuns.visible = false;
+        // Update weapon visuals — show base tier guns + damaged overlay for degraded parts
+        const baseTier = this.octoWeapon ? 4 : this.dualWeapon ? 3 : (this.weaponBoost || this.weaponLevel > 1) ? 2 : 1;
+        const effectiveTier = this.getEffectiveWeaponTier();
+        const isDegraded = effectiveTier < baseTier;
+
+        this.tripleGuns.visible = false;
+        this.dualGuns.visible = false;
+        this.octoGuns.visible = false;
+        this.damagedOverlay.visible = false;
+
+        // Show the base tier gun model (what the player owns)
+        if (baseTier >= 4) {
+            this.octoGuns.visible = true;
+        } else if (baseTier >= 3) {
             this.dualGuns.visible = true;
-        } else if (this.weaponBoost || this.weaponLevel > 1) {
+        } else if (baseTier >= 2) {
             this.tripleGuns.visible = true;
-            this.dualGuns.visible = false;
-        } else {
-            this.tripleGuns.visible = false;
-            this.dualGuns.visible = false;
+        }
+
+        // Show damaged overlay on degraded parts
+        if (isDegraded && baseTier > 1) {
+            this.damagedOverlay.visible = true;
+            // Hide all damaged parts first
+            this.damagedOverlay.children.forEach(c => c.visible = false);
+
+            if (baseTier === 4 && effectiveTier <= 3) {
+                // Octo degraded: show damaged diagonal barrels
+                this.damagedDiagRight.visible = true;
+                this.damagedDiagLeft.visible = true;
+            }
+            if ((baseTier >= 3 && effectiveTier <= 2) || (baseTier === 4 && effectiveTier <= 2)) {
+                // Dual degraded to triple or less: show damaged back barrels
+                this.damagedOverlay.children.forEach(c => {
+                    if (c.userData.isDamagedBack) c.visible = true;
+                });
+            }
+            if (effectiveTier <= 1 && baseTier >= 2) {
+                // All degraded to single: show damaged side barrels too
+                this.damagedOverlay.children.forEach(c => {
+                    if (c.userData.isDamagedSide) c.visible = true;
+                    if (c.userData.isDamagedBack) c.visible = true;
+                });
+                this.damagedDiagRight.visible = (baseTier >= 4);
+                this.damagedDiagLeft.visible = (baseTier >= 4);
+            }
+        }
+
+        // Flicker damaged guns to look broken/sparking
+        if (this.damagedOverlay.visible) {
+            const flicker = Math.sin(currentTime * 15) > 0.3 ? 1 : 0.3;
+            this.damagedOverlay.children.forEach(c => {
+                if (c.visible && c.material) {
+                    c.material.emissiveIntensity = flicker * 0.3;
+                }
+            });
         }
 
         // Update shield visual
@@ -188,13 +289,34 @@ class PlayerShuttle {
         return null;
     }
 
+    getEffectiveWeaponTier() {
+        // Determine base tier: 4=octo, 3=dual, 2=triple, 1=single
+        let tier = 1;
+        if (this.octoWeapon) tier = 4;
+        else if (this.dualWeapon) tier = 3;
+        else if (this.weaponBoost || this.weaponLevel > 1) tier = 2;
+
+        // Degrade based on health
+        if (this.health < 40) {
+            // Red health: single gun only
+            tier = 1;
+        } else if (this.health < 80) {
+            // Yellow health: drop one tier
+            tier = Math.max(1, tier - 1);
+        }
+
+        return tier;
+    }
+
     createLaser() {
         const lasers = [];
         const basePosition = this.mesh.position.clone();
         const dirUp = new THREE.Vector3(0, 1, 0);
         const dirDown = new THREE.Vector3(0, -1, 0);
 
-        if (this.octoWeapon) {
+        const tier = this.getEffectiveWeaponTier();
+
+        if (tier >= 4) {
             // 8-shot: triple forward + triple backward + 2 diagonal
             for (let i = -1; i <= 1; i++) {
                 lasers.push(new Laser(basePosition.clone().add(new THREE.Vector3(i * 0.5, 0, 0)), dirUp.clone(), this.scene));
@@ -206,13 +328,13 @@ class PlayerShuttle {
             // Bottom-right diagonal
             const dirBottomRight = new THREE.Vector3(0.7, -0.7, 0).normalize();
             lasers.push(new Laser(basePosition.clone().add(new THREE.Vector3(0.8, -0.3, 0)), dirBottomRight, this.scene));
-        } else if (this.dualWeapon) {
+        } else if (tier === 3) {
             // 6-shot: triple forward + triple backward
             for (let i = -1; i <= 1; i++) {
                 lasers.push(new Laser(basePosition.clone().add(new THREE.Vector3(i * 0.5, 0, 0)), dirUp.clone(), this.scene));
                 lasers.push(new Laser(basePosition.clone().add(new THREE.Vector3(i * 0.5, 0, 0)), dirDown.clone(), this.scene));
             }
-        } else if (this.weaponBoost || this.weaponLevel > 1) {
+        } else if (tier === 2) {
             // Triple shot forward
             for (let i = -1; i <= 1; i++) {
                 lasers.push(new Laser(basePosition.clone().add(new THREE.Vector3(i * 0.5, 0, 0)), dirUp.clone(), this.scene));
@@ -468,6 +590,31 @@ class Asteroid {
 
                 fragments[fragments.length - 1].velocity = this.velocity.clone()
                     .add(offset.normalize().multiplyScalar(7));
+            }
+        } else if (this.size === 'small') {
+            // Small rocks shatter into visible rock debris chunks
+            const pos = this.mesh.position.clone();
+            const rockMat = new THREE.MeshPhongMaterial({ color: 0x8b7355, emissive: 0x4a3929, shininess: 10, flatShading: true });
+            const count = Math.floor(Math.random() * 2) + 4;
+            for (let i = 0; i < count; i++) {
+                const angle = (Math.PI * 2 * i) / count;
+                const offset = new THREE.Vector3(Math.cos(angle) * 0.6, Math.sin(angle) * 0.6, (Math.random() - 0.5) * 0.4);
+                const size = 0.3 + Math.random() * 0.35;
+                const geo = new THREE.IcosahedronGeometry(size, 0);
+                // Roughen up the chunk vertices
+                const verts = geo.attributes.position.array;
+                for (let v = 0; v < verts.length; v += 3) {
+                    verts[v] += (Math.random() - 0.5) * 0.15;
+                    verts[v+1] += (Math.random() - 0.5) * 0.15;
+                    verts[v+2] += (Math.random() - 0.5) * 0.15;
+                }
+                geo.attributes.position.needsUpdate = true;
+                geo.computeVertexNormals();
+                const frag = new EnemyDebris(pos.clone().add(offset), geo, rockMat, this.scene);
+                frag.velocity.copy(offset.normalize().multiplyScalar(8 + Math.random() * 6));
+                frag.velocity.z += (Math.random() - 0.5) * 4;
+                frag.lifetime = 2 + Math.random() * 1;
+                fragments.push(frag);
             }
         }
 
@@ -759,40 +906,71 @@ class MissileShip {
 
         const group = new THREE.Group();
 
-        // Bulkier hull (dark red)
-        const hullGeo = new THREE.DodecahedronGeometry(1, 0);
-        const hullMat = new THREE.MeshPhongMaterial({
-            color: 0x880000,
-            emissive: 0x440000,
-            shininess: 80,
+        // Elongated body (green/teal - distinct from red enemies)
+        const bodyGeo = new THREE.CylinderGeometry(0.5, 0.8, 2.2, 6);
+        const bodyMat = new THREE.MeshPhongMaterial({
+            color: 0x008866,
+            emissive: 0x004433,
+            shininess: 100,
             flatShading: true
         });
-        group.add(new THREE.Mesh(hullGeo, hullMat));
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.rotation.x = Math.PI / 2;
+        group.add(body);
 
-        // Missile pods on sides
-        const podGeo = new THREE.BoxGeometry(0.4, 0.4, 0.8);
-        const podMat = new THREE.MeshPhongMaterial({ color: 0x666666, emissive: 0x333333 });
+        // Cockpit dome
+        const cockpitGeo = new THREE.SphereGeometry(0.45, 8, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+        const cockpitMat = new THREE.MeshPhongMaterial({
+            color: 0x44ffaa,
+            emissive: 0x22aa66,
+            shininess: 200,
+            transparent: true,
+            opacity: 0.7
+        });
+        const cockpit = new THREE.Mesh(cockpitGeo, cockpitMat);
+        cockpit.position.z = 0.7;
+        cockpit.rotation.x = -Math.PI / 2;
+        group.add(cockpit);
+
+        // Swept-back wings
         for (let side = -1; side <= 1; side += 2) {
+            const wingGeo = new THREE.BoxGeometry(1.8, 0.08, 0.6);
+            const wingMat = new THREE.MeshPhongMaterial({
+                color: 0x006644,
+                emissive: 0x003322,
+                flatShading: true
+            });
+            const wing = new THREE.Mesh(wingGeo, wingMat);
+            wing.position.set(side * 1.2, 0, -0.3);
+            wing.rotation.z = side * 0.15;
+            group.add(wing);
+
+            // Missile pod on each wing tip
+            const podGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.8, 6);
+            const podMat = new THREE.MeshPhongMaterial({ color: 0x555555, emissive: 0x333333 });
             const pod = new THREE.Mesh(podGeo, podMat);
-            pod.position.set(side * 1.4, 0, 0.3);
+            pod.rotation.x = Math.PI / 2;
+            pod.position.set(side * 2.0, 0, -0.2);
             group.add(pod);
 
-            // Missile tips visible in pods
-            const tipGeo = new THREE.ConeGeometry(0.1, 0.3, 4);
-            const tipMat = new THREE.MeshPhongMaterial({ color: 0xff0000, emissive: 0xaa0000 });
+            // Missile tip
+            const tipGeo = new THREE.ConeGeometry(0.15, 0.35, 4);
+            const tipMat = new THREE.MeshPhongMaterial({ color: 0xff4400, emissive: 0xaa2200 });
             const tip = new THREE.Mesh(tipGeo, tipMat);
             tip.rotation.x = -Math.PI / 2;
-            tip.position.set(side * 1.4, 0, 0.75);
+            tip.position.set(side * 2.0, 0, 0.25);
             group.add(tip);
         }
 
-        // Engine glow
-        const engineGeo = new THREE.SphereGeometry(0.3, 8, 8);
-        const engineMat = new THREE.MeshBasicMaterial({ color: 0xff4400, transparent: true, opacity: 0.4 });
-        const engine = new THREE.Mesh(engineGeo, engineMat);
-        engine.position.z = -0.8;
-        group.add(engine);
-        this.engine = engine;
+        // Twin engine glows
+        const engineGeo = new THREE.SphereGeometry(0.22, 8, 8);
+        const engineMat = new THREE.MeshBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0.5 });
+        for (let side = -1; side <= 1; side += 2) {
+            const engine = new THREE.Mesh(engineGeo, engineMat);
+            engine.position.set(side * 0.4, 0, -1.2);
+            group.add(engine);
+        }
+        this.engineMat = engineMat;
 
         this.mesh = group;
         this.mesh.position.copy(position);
@@ -806,7 +984,7 @@ class MissileShip {
 
     update(deltaTime, currentTime) {
         this.time += deltaTime;
-        this.engine.material.opacity = 0.3 + Math.sin(this.time * 8) * 0.15;
+        this.engineMat.opacity = 0.3 + Math.sin(this.time * 8) * 0.15;
 
         if (this.target && this.target.mesh) {
             const direction = new THREE.Vector3()
@@ -860,24 +1038,26 @@ class MissileShip {
         const fragments = [];
         const pos = this.mesh.position.clone();
 
-        const hullGeo = new THREE.TetrahedronGeometry(0.5, 0);
-        const hullMat = new THREE.MeshPhongMaterial({ color: 0x880000, emissive: 0x440000, shininess: 80 });
+        // Body fragments (green/teal)
+        const bodyGeo = new THREE.TetrahedronGeometry(0.5, 0);
+        const bodyMat = new THREE.MeshPhongMaterial({ color: 0x008866, emissive: 0x004433, shininess: 80 });
         for (let i = 0; i < 4; i++) {
             const angle = (Math.PI * 2 * i) / 4;
             const offset = new THREE.Vector3(Math.cos(angle) * 1, Math.sin(angle) * 1, 0);
-            const frag = new EnemyDebris(pos.clone().add(offset), hullGeo, hullMat, this.scene);
+            const frag = new EnemyDebris(pos.clone().add(offset), bodyGeo, bodyMat, this.scene);
             frag.velocity.copy(offset.normalize().multiplyScalar(10 + Math.random() * 6));
             fragments.push(frag);
         }
 
-        const podGeo = new THREE.BoxGeometry(0.3, 0.3, 0.5);
-        const podMat = new THREE.MeshPhongMaterial({ color: 0x666666, emissive: 0x333333 });
+        // Wing fragments
+        const wingGeo = new THREE.BoxGeometry(0.8, 0.06, 0.3);
+        const wingMat = new THREE.MeshPhongMaterial({ color: 0x006644, emissive: 0x003322 });
         for (let side = -1; side <= 1; side += 2) {
             const frag = new EnemyDebris(
-                pos.clone().add(new THREE.Vector3(side * 1.2, 0, 0)),
-                podGeo, podMat, this.scene
+                pos.clone().add(new THREE.Vector3(side * 1.5, 0, 0)),
+                wingGeo, wingMat, this.scene
             );
-            frag.velocity.set(side * 12, (Math.random() - 0.5) * 6, 0);
+            frag.velocity.set(side * 14, (Math.random() - 0.5) * 6, 0);
             fragments.push(frag);
         }
 
@@ -1074,6 +1254,48 @@ class Matriarch {
         this.shieldMesh = new THREE.Mesh(shieldGeometry, shieldMaterial);
         group.add(this.shieldMesh);
 
+        // Spawn hatch (destroyable - spawns missile ships)
+        const hatchGroup = new THREE.Group();
+        const hatchGeo = new THREE.BoxGeometry(2, 1.2, 0.4);
+        const hatchMat = new THREE.MeshPhongMaterial({
+            color: 0x00ff88,
+            emissive: 0x008844,
+            shininess: 100
+        });
+        const hatchPanel = new THREE.Mesh(hatchGeo, hatchMat);
+        hatchGroup.add(hatchPanel);
+
+        const hatchFrameGeo = new THREE.BoxGeometry(2.4, 1.6, 0.2);
+        const hatchFrameMat = new THREE.MeshPhongMaterial({
+            color: 0x444444,
+            emissive: 0x222222
+        });
+        const hatchFrame = new THREE.Mesh(hatchFrameGeo, hatchFrameMat);
+        hatchFrame.position.z = -0.15;
+        hatchGroup.add(hatchFrame);
+
+        const hatchLightGeo = new THREE.SphereGeometry(0.2, 8, 8);
+        const hatchLightMat = new THREE.MeshBasicMaterial({
+            color: 0x00ff88,
+            transparent: true,
+            opacity: 0.8
+        });
+        this.hatchLight = new THREE.Mesh(hatchLightGeo, hatchLightMat);
+        this.hatchLight.position.set(0, 0.9, 0);
+        hatchGroup.add(this.hatchLight);
+
+        hatchGroup.position.set(0, -3.5, 0);
+        group.add(hatchGroup);
+
+        this.hatchGroup = hatchGroup;
+        this.hatchMat = hatchMat;
+        this.hatchHealth = 200;
+        this.hatchMaxHealth = 200;
+        this.hatchAlive = true;
+        this.hatchSpawnTimer = 0;
+        this.hatchSpawnInterval = 12;
+        this.pendingSpawns = [];
+
         this.mesh = group;
         this.mesh.position.copy(position);
         scene.add(this.mesh);
@@ -1211,19 +1433,39 @@ class Matriarch {
         // Friction
         this.velocity.multiplyScalar(0.97);
 
+        // Hatch spawning
+        if (this.hatchAlive) {
+            this.hatchSpawnTimer += deltaTime;
+            // Pulse hatch light when about to spawn
+            if (this.hatchSpawnTimer > this.hatchSpawnInterval - 3) {
+                this.hatchLight.material.opacity = 0.5 + Math.sin(this.time * 12) * 0.5;
+                this.hatchMat.emissive.setHex(0x00ff44);
+            } else {
+                this.hatchLight.material.opacity = 0.4 + Math.sin(this.time * 2) * 0.2;
+                this.hatchMat.emissive.setHex(0x008844);
+            }
+            if (this.hatchSpawnTimer >= this.hatchSpawnInterval) {
+                this.hatchSpawnTimer = 0;
+                const hatchWorldPos = this.getHatchWorldPosition();
+                const missileShip = new MissileShip(hatchWorldPos, this.scene, this.target);
+                this.pendingSpawns.push(missileShip);
+            }
+        }
+
         return lasers.length > 0 ? lasers : null;
     }
 
     createLaser(direction) {
+        const dir = direction.clone().normalize();
         const laser = new Laser(
-            this.mesh.position.clone().add(direction.clone().multiplyScalar(4)),
-            direction,
+            this.mesh.position.clone().add(dir.clone().multiplyScalar(4)),
+            dir.clone(),
             this.scene
         );
         laser.mesh.material.color.setHex(0xff00ff);
         laser.damage = this.damage;
         laser.speed = 60;
-        laser.velocity = direction.multiplyScalar(60);
+        laser.velocity = dir.multiplyScalar(60);
         return laser;
     }
 
@@ -1233,8 +1475,38 @@ class Matriarch {
         return worldPos;
     }
 
+    getHatchWorldPosition() {
+        if (!this.hatchGroup || !this.hatchGroup.parent) {
+            return this.mesh.position.clone();
+        }
+        const worldPos = new THREE.Vector3();
+        this.hatchGroup.getWorldPosition(worldPos);
+        return worldPos;
+    }
+
+    destroyHatch() {
+        // Visual: make hatch look destroyed
+        this.hatchMat.color.setHex(0x333333);
+        this.hatchMat.emissive.setHex(0x111111);
+        this.hatchLight.material.opacity = 0;
+        this.hatchLight.material.color.setHex(0x000000);
+    }
+
     takeDamage(damage, hitPosition) {
-        // Shield on = completely invulnerable
+        // Check hatch hit first (hatch is NOT protected by shield)
+        if (this.hatchAlive && hitPosition) {
+            const hatchPos = this.getHatchWorldPosition();
+            const distToHatch = hitPosition.distanceTo(hatchPos);
+            if (distToHatch < 3.5) {
+                this.hatchHealth = Math.max(0, this.hatchHealth - damage);
+                if (this.hatchHealth <= 0) {
+                    this.hatchAlive = false;
+                    this.destroyHatch();
+                }
+                return false;
+            }
+        }
+        // Shield on = completely invulnerable (for main body)
         if (this.shieldActive) {
             return false;
         }
@@ -1271,6 +1543,15 @@ class Matriarch {
         const coreFrag = new EnemyDebris(pos.clone(), coreGeo, coreMat, this.scene);
         coreFrag.velocity.set(0, 5, 0);
         fragments.push(coreFrag);
+
+        // Hatch debris
+        if (this.hatchAlive) {
+            const hatchGeo = new THREE.BoxGeometry(0.8, 0.5, 0.2);
+            const hatchDebrisMat = new THREE.MeshPhongMaterial({ color: 0x00ff88, emissive: 0x008844 });
+            const hatchFrag = new EnemyDebris(pos.clone().add(new THREE.Vector3(0, -3, 0)), hatchGeo, hatchDebrisMat, this.scene);
+            hatchFrag.velocity.set(0, -10, 3);
+            fragments.push(hatchFrag);
+        }
 
         this.destroy();
         return fragments;

@@ -132,6 +132,132 @@ class ParticleSystem {
         }
     }
 
+    createMineExplosion(position) {
+        // Bright white flash at center
+        for (let i = 0; i < 30; i++) {
+            const velocity = new THREE.Vector3(
+                (Math.random() - 0.5) * 5,
+                (Math.random() - 0.5) * 5,
+                (Math.random() - 0.5) * 3
+            );
+            this.emit(position, velocity, new THREE.Color(1, 1, 1), Math.random() * 8 + 5, 0.15 + Math.random() * 0.1);
+        }
+
+        // Massive orange/red fireball core
+        for (let i = 0; i < 250; i++) {
+            const velocity = new THREE.Vector3(
+                (Math.random() - 0.5) * 30,
+                (Math.random() - 0.5) * 30,
+                (Math.random() - 0.5) * 18
+            );
+            const size = Math.random() * 6 + 2;
+            const lifetime = Math.random() * 1.0 + 0.5;
+            const color = new THREE.Color();
+            const r = Math.random();
+            if (r < 0.35) {
+                color.setRGB(1, 0.1 + Math.random() * 0.2, 0);       // deep red
+            } else if (r < 0.65) {
+                color.setRGB(1, 0.4 + Math.random() * 0.3, 0);       // orange
+            } else if (r < 0.85) {
+                color.setRGB(1, 0.7 + Math.random() * 0.3, 0);       // yellow-orange
+            } else {
+                color.setRGB(1, 1, 0.5 + Math.random() * 0.5);       // white-yellow
+            }
+            this.emit(position, velocity, color, size, lifetime);
+        }
+
+        // Inner shockwave ring (fast, tight)
+        for (let i = 0; i < 40; i++) {
+            const angle = (Math.PI * 2 * i) / 40;
+            const speed = 30 + Math.random() * 10;
+            const velocity = new THREE.Vector3(
+                Math.cos(angle) * speed,
+                Math.sin(angle) * speed,
+                0
+            );
+            this.emit(position, velocity, new THREE.Color(1, 0.8, 0.3), Math.random() * 3 + 2, 0.2 + Math.random() * 0.1);
+        }
+
+        // Outer shockwave ring (slower, wider)
+        for (let i = 0; i < 80; i++) {
+            const angle = (Math.PI * 2 * i) / 80;
+            const speed = 15 + Math.random() * 12;
+            const velocity = new THREE.Vector3(
+                Math.cos(angle) * speed,
+                Math.sin(angle) * speed,
+                (Math.random() - 0.5) * 4
+            );
+            const color = new THREE.Color(1, 0.3 + Math.random() * 0.3, 0);
+            this.emit(position, velocity, color, Math.random() * 2 + 1, 0.4 + Math.random() * 0.3);
+        }
+
+        // Sparks flying outward
+        for (let i = 0; i < 50; i++) {
+            const velocity = new THREE.Vector3(
+                (Math.random() - 0.5) * 40,
+                (Math.random() - 0.5) * 40,
+                (Math.random() - 0.5) * 20
+            );
+            const color = new THREE.Color(1, 0.8 + Math.random() * 0.2, 0.2 + Math.random() * 0.3);
+            this.emit(position, velocity, color, Math.random() * 1.5 + 0.5, 0.5 + Math.random() * 0.4);
+        }
+
+        // Lingering smoke/debris
+        for (let i = 0; i < 60; i++) {
+            const velocity = new THREE.Vector3(
+                (Math.random() - 0.5) * 10,
+                (Math.random() - 0.5) * 10,
+                (Math.random() - 0.5) * 5
+            );
+            const g = 0.1 + Math.random() * 0.15;
+            const color = new THREE.Color(g, g * 0.6, g * 0.2);
+            this.emit(position, velocity, color, Math.random() * 4 + 2, 1.0 + Math.random() * 0.8);
+        }
+    }
+
+    createShuttleFire(position) {
+        // Flames rising from the shuttle
+        for (let i = 0; i < 3; i++) {
+            const offset = new THREE.Vector3(
+                (Math.random() - 0.5) * 2,
+                (Math.random() - 0.5) * 1.5,
+                Math.random() * 0.5
+            );
+            const velocity = new THREE.Vector3(
+                (Math.random() - 0.5) * 3,
+                (Math.random() - 0.5) * 3,
+                2 + Math.random() * 3
+            );
+            const r = Math.random();
+            const color = new THREE.Color();
+            if (r < 0.4) {
+                color.setRGB(1, 0.15 + Math.random() * 0.15, 0);  // red-orange
+            } else if (r < 0.75) {
+                color.setRGB(1, 0.5 + Math.random() * 0.3, 0);    // orange-yellow
+            } else {
+                color.setRGB(1, 0.9, 0.3 + Math.random() * 0.3);  // bright yellow
+            }
+            const size = Math.random() * 2.5 + 1;
+            const lifetime = 0.2 + Math.random() * 0.25;
+            this.emit(position.clone().add(offset), velocity, color, size, lifetime);
+        }
+        // Dark smoke wisps
+        if (Math.random() < 0.5) {
+            const offset = new THREE.Vector3(
+                (Math.random() - 0.5) * 2,
+                (Math.random() - 0.5) * 1.5,
+                0.5
+            );
+            const velocity = new THREE.Vector3(
+                (Math.random() - 0.5) * 2,
+                (Math.random() - 0.5) * 2,
+                3 + Math.random() * 2
+            );
+            const g = 0.15 + Math.random() * 0.1;
+            this.emit(position.clone().add(offset), velocity, new THREE.Color(g, g * 0.5, 0), Math.random() * 2 + 1, 0.4 + Math.random() * 0.3);
+        }
+    }
+
     createDebris(position, color = new THREE.Color(0.6, 0.4, 0.2), particleCount = 12) {
         for (let i = 0; i < particleCount; i++) {
             const velocity = new THREE.Vector3(

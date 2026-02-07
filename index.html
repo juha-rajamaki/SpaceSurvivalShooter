@@ -40,13 +40,8 @@
                 <span id="timer">3:00</span>
             </div>
 
-            <!-- Sound Controls -->
-            <div id="sound-controls">
-                <button id="toggle-sound" class="sound-btn" title="Toggle All Sound">🔊</button>
-                <button id="toggle-music" class="sound-btn" title="Toggle Music">🎵</button>
-                <button id="toggle-sfx" class="sound-btn" title="Toggle Sound Effects">🎮</button>
-                <input type="range" id="volume-slider" min="0" max="100" value="50" title="Master Volume">
-            </div>
+            <!-- Settings Button -->
+            <button id="settings-btn" title="Settings">⚙️</button>
 
             <div id="power-ups">
                 <div id="shield-bar-container" class="hidden">
@@ -86,6 +81,12 @@
                 <div id="boss-health-fill"></div>
                 <span id="boss-health-text">800/800</span>
             </div>
+            <div id="hatch-health-bar">
+                <span class="hatch-label">HATCH</span>
+                <div id="hatch-health-track">
+                    <div id="hatch-health-fill"></div>
+                </div>
+            </div>
         </div>
 
         <!-- Game Over Screen -->
@@ -107,6 +108,33 @@
 
         <!-- Round Transition Overlay -->
         <div id="round-transition" class="hidden"></div>
+
+        <!-- Settings Modal -->
+        <div id="settings-modal" class="hidden">
+            <div id="settings-panel">
+                <h2>Settings</h2>
+                <div class="settings-group">
+                    <h3>Sound</h3>
+                    <div class="settings-row">
+                        <span class="settings-label">All Sound</span>
+                        <button id="toggle-sound" class="sound-btn" title="Toggle All Sound">🔊</button>
+                    </div>
+                    <div class="settings-row">
+                        <span class="settings-label">Music</span>
+                        <button id="toggle-music" class="sound-btn" title="Toggle Music">🎵</button>
+                    </div>
+                    <div class="settings-row">
+                        <span class="settings-label">SFX</span>
+                        <button id="toggle-sfx" class="sound-btn" title="Toggle Sound Effects">🎮</button>
+                    </div>
+                    <div class="settings-row">
+                        <span class="settings-label">Volume</span>
+                        <input type="range" id="volume-slider" min="0" max="100" value="50" title="Master Volume">
+                    </div>
+                </div>
+                <button id="settings-close-btn">Close</button>
+            </div>
+        </div>
 
         <!-- Start Screen -->
         <div id="start-screen">

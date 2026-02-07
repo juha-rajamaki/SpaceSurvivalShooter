@@ -184,6 +184,18 @@ class Game {
     setupEventListeners() {
         // Keyboard controls
         document.addEventListener('keydown', (e) => {
+            // Escape to close settings modal
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('settings-modal');
+                if (!modal.classList.contains('hidden')) {
+                    modal.classList.add('hidden');
+                    if (this.isRunning && !this.gameOver && !this.waitingForRoundStart) {
+                        this.isPaused = false;
+                    }
+                    return;
+                }
+            }
+
             // Enter key to start, restart, or begin next round
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -303,7 +315,33 @@ class Game {
             }
         });
 
-        // Sound control buttons
+        // Settings modal
+        document.getElementById('settings-btn').addEventListener('click', () => {
+            const modal = document.getElementById('settings-modal');
+            modal.classList.toggle('hidden');
+            if (!modal.classList.contains('hidden') && this.isRunning && !this.gameOver) {
+                this.isPaused = true;
+            }
+        });
+
+        document.getElementById('settings-close-btn').addEventListener('click', () => {
+            document.getElementById('settings-modal').classList.add('hidden');
+            if (this.isRunning && !this.gameOver && !this.waitingForRoundStart) {
+                this.isPaused = false;
+            }
+        });
+
+        // Close settings on clicking backdrop
+        document.getElementById('settings-modal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('settings-modal')) {
+                document.getElementById('settings-modal').classList.add('hidden');
+                if (this.isRunning && !this.gameOver && !this.waitingForRoundStart) {
+                    this.isPaused = false;
+                }
+            }
+        });
+
+        // Sound control buttons (inside settings modal)
         document.getElementById('toggle-sound').addEventListener('click', () => {
             const enabled = window.soundManager.toggleSound();
             document.getElementById('toggle-sound').classList.toggle('disabled', !enabled);
@@ -825,6 +863,16 @@ class Game {
         // Update round timer
         this.currentTime -= deltaTime;
 
+        // Countdown beeps for last 5 seconds
+        const secondsLeft = Math.ceil(this.currentTime);
+        if (secondsLeft <= 5 && secondsLeft >= 1 && this._lastCountdownBeep !== secondsLeft) {
+            this._lastCountdownBeep = secondsLeft;
+            window.soundManager.playCountdownBeep(secondsLeft);
+        }
+        if (secondsLeft > 5) {
+            this._lastCountdownBeep = 0;
+        }
+
         // Fade music out in the last 3 seconds of the round
         if (this.currentTime <= 3 && !this.musicFading) {
             this.musicFading = true;
@@ -854,6 +902,7 @@ class Game {
             this.roundStats = { enemiesKilled: 0, asteroidsDestroyed: 0, scoreEarned: 0, damageTaken: 0 };
             this.enemyWaveNumber = 0;
             this.enemyRespawnTimer = 0;
+            this._lastCountdownBeep = 0;
 
             // Clear all entities from previous round
             this.asteroids.forEach(a => a.destroy());
@@ -896,6 +945,18 @@ class Game {
             if (this.player.health < this.player.maxHealth) {
                 this.player.health = Math.min(this.player.health + (this.player.maxHealth / 120) * deltaTime, this.player.maxHealth);
             }
+
+            // Track weapon tier changes from health
+            const currentTier = this.player.getEffectiveWeaponTier();
+            if (this._lastWeaponTier === undefined) {
+                this._lastWeaponTier = currentTier;
+            }
+            if (currentTier < this._lastWeaponTier) {
+                this.showWeaponStatusMessage('WEAPON DAMAGED', '#ff4444');
+            } else if (currentTier > this._lastWeaponTier) {
+                this.showWeaponStatusMessage('WEAPONS REPAIRED', '#00ff88');
+            }
+            this._lastWeaponTier = currentTier;
 
             // Handle player update and firing first to get acceleration
             const newLasers = this.player.update(deltaTime, this.input, currentTime);
@@ -944,6 +1005,11 @@ class Game {
                 this.wasBoostingLastFrame = false;
             }
 
+            // Shuttle on fire when health is critical (red)
+            if (this.player.health < 40 && this.player.health > 0) {
+                this.particleSystem.createShuttleFire(this.player.mesh.position);
+            }
+
             // Apply black hole gravity
             this.blackHoles.forEach(blackHole => {
                 this.physics.applyGravitationalPull(this.player, blackHole);
@@ -962,6 +1028,7 @@ class Game {
         });
 
         // Update enemies
+        const matriarchSpawns = [];
         this.enemies.forEach((enemy, index) => {
             const result = enemy.update(deltaTime, currentTime);
             if (result) {
@@ -977,9 +1044,18 @@ class Game {
                     window.soundManager.playEnemyLaser();
                 }
             }
+            // Collect Matriarch hatch spawns
+            if (enemy instanceof Matriarch && enemy.pendingSpawns.length > 0) {
+                matriarchSpawns.push(...enemy.pendingSpawns);
+                enemy.pendingSpawns = [];
+            }
             this.physics.updatePosition(enemy, deltaTime);
             this.physics.keepInBounds(enemy, this.bounds);
         });
+        // Add Matriarch hatch spawns to enemies
+        if (matriarchSpawns.length > 0) {
+            this.enemies.push(...matriarchSpawns);
+        }
 
         // Enemy respawning - when all regular enemies are destroyed, spawn replacements
         const matriarchAlive = this.enemies.some(e => e instanceof Matriarch);
@@ -1003,18 +1079,47 @@ class Game {
         for (let i = this.mines.length - 1; i >= 0; i--) {
             const shouldExplode = this.mines[i].update(deltaTime, this.player.mesh.position);
             if (shouldExplode) {
-                this.particleSystem.createExplosion(
-                    this.mines[i].mesh.position,
-                    new THREE.Color(1, 0.3, 0),
-                    100
-                );
-                window.soundManager.playExplosion('large');
+                this.particleSystem.createMineExplosion(this.mines[i].mesh.position);
+                window.soundManager.playMineExplosion();
 
-                // Check damage to player
+                // Check damage to player (bigger blast radius)
                 const distance = this.mines[i].mesh.position.distanceTo(this.player.mesh.position);
-                if (distance < 10) {
-                    const damage = Math.max(0, 25 - distance * 2.5);
+                if (distance < 18) {
+                    const damage = Math.max(0, 45 - distance * 2.5);
                     this.damagePlayer(damage);
+                }
+
+                // Damage nearby enemies in blast
+                const minePos = this.mines[i].mesh.position;
+                for (let j = this.enemies.length - 1; j >= 0; j--) {
+                    const eDist = minePos.distanceTo(this.enemies[j].mesh.position);
+                    if (eDist < 15) {
+                        const dmg = 40 * (1 - eDist / 15);
+                        if (this.enemies[j].takeDamage(dmg, minePos.clone())) {
+                            this.particleSystem.createExplosion(this.enemies[j].mesh.position, new THREE.Color(1, 0.5, 0), 50);
+                            const fragments = this.enemies[j].break();
+                            this.debris.push(...fragments);
+                            this.enemies.splice(j, 1);
+                            this.roundStats.enemiesKilled++;
+                            this.addScore(200);
+                        }
+                    }
+                }
+
+                // Destroy nearby asteroids in blast
+                for (let j = this.asteroids.length - 1; j >= 0; j--) {
+                    const aDist = minePos.distanceTo(this.asteroids[j].mesh.position);
+                    if (aDist < 15) {
+                        const dmg = 60 * (1 - aDist / 15);
+                        if (this.asteroids[j].takeDamage(dmg)) {
+                            this.particleSystem.createExplosion(this.asteroids[j].mesh.position, new THREE.Color(0.7, 0.4, 0.1), 30);
+                            const fragments = this.asteroids[j].break();
+                            this.asteroids.splice(j, 1);
+                            this.collectAsteroidFragments(fragments);
+                            this.roundStats.asteroidsDestroyed++;
+                            this.addScore(50);
+                        }
+                    }
                 }
 
                 this.mines[i].destroy();
@@ -1124,7 +1229,7 @@ class Game {
                             }
                             const fragments = this.asteroids[j].break();
                             this.asteroids.splice(j, 1);
-                            this.asteroids.push(...fragments);
+                            this.collectAsteroidFragments(fragments);
                             this.roundStats.asteroidsDestroyed++;
                             this.addScore(50);
                         }
@@ -1209,6 +1314,16 @@ class Game {
         }
     }
 
+    collectAsteroidFragments(fragments) {
+        for (const f of fragments) {
+            if (f instanceof Asteroid) {
+                this.asteroids.push(f);
+            } else {
+                this.debris.push(f);
+            }
+        }
+    }
+
     handleCollisions() {
         // Player laser vs asteroids
         for (let i = this.lasers.length - 1; i >= 0; i--) {
@@ -1222,11 +1337,11 @@ class Game {
                     if (this.asteroids[j].takeDamage(this.lasers[i].damage)) {
                         // Asteroid destroyed
                         if (this.asteroids[j].size === 'small') {
-                            // Small asteroids shatter into tiny pixel debris
-                            this.particleSystem.createDebris(
+                            // Small asteroids get a small explosion
+                            this.particleSystem.createExplosion(
                                 this.asteroids[j].mesh.position,
                                 new THREE.Color(0.6, 0.4, 0.2),
-                                25
+                                15
                             );
                         } else if (this.asteroids[j].size === 'huge') {
                             // Huge asteroids get a massive explosion
@@ -1290,7 +1405,7 @@ class Game {
                                             this.asteroids[j].size === 'medium' ? 75 : 50;
 
                         this.asteroids.splice(j, 1);
-                        this.asteroids.push(...fragments);
+                        this.collectAsteroidFragments(fragments);
                         this.roundStats.asteroidsDestroyed++;
 
                         this.addScore(asteroidScore);
@@ -1392,7 +1507,7 @@ class Game {
                     window.soundManager.playExplosion('huge');
                     const fragments = asteroid.break();
                     this.asteroids.splice(i, 1);
-                    this.asteroids.push(...fragments);
+                    this.collectAsteroidFragments(fragments);
                 } else if (asteroid.size === 'large') {
                     this.damagePlayer(60);
                 } else if (asteroid.size === 'medium') {
@@ -1490,6 +1605,27 @@ class Game {
         this.score += points;
         this.roundStats.scoreEarned += points;
         this.ui.score.textContent = this.score;
+    }
+
+    showWeaponStatusMessage(message, color) {
+        const messageEl = document.createElement('div');
+        messageEl.textContent = message;
+        messageEl.style.cssText = `
+            position: fixed;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: 'Orbitron', sans-serif;
+            color: ${color};
+            font-size: 28px;
+            font-weight: 900;
+            letter-spacing: 3px;
+            text-shadow: 0 0 12px ${color}, 2px 2px 4px rgba(0,0,0,0.9);
+            pointer-events: none;
+            animation: fadeUp 2.5s ease-out forwards;
+        `;
+        document.body.appendChild(messageEl);
+        setTimeout(() => messageEl.remove(), 2500);
     }
 
     showPowerUpMessage(message) {
@@ -1626,6 +1762,16 @@ class Game {
             const bossPercent = (matriarch.health / matriarch.maxHealth) * 100;
             bossFill.style.width = bossPercent + '%';
             bossText.textContent = `${Math.ceil(matriarch.health)}/${matriarch.maxHealth}`;
+            // Hatch health
+            const hatchBar = document.getElementById('hatch-health-bar');
+            const hatchFill = document.getElementById('hatch-health-fill');
+            if (matriarch.hatchAlive) {
+                hatchBar.style.display = 'flex';
+                const hatchPercent = (matriarch.hatchHealth / matriarch.hatchMaxHealth) * 100;
+                hatchFill.style.width = hatchPercent + '%';
+            } else {
+                hatchBar.style.display = 'none';
+            }
         } else {
             bossContainer.classList.add('hidden');
         }
@@ -1798,9 +1944,12 @@ class Game {
     spawnReplacementEnemies() {
         const roundIdx = Math.max(0, Math.min(ROUND_CONFIG.length - 1, this.round - 1));
         const cfg = ROUND_CONFIG[roundIdx];
+        // Each wave spawns more enemies: wave 1 = base, wave 2 = base+1, wave 3 = base+2, etc.
         const baseCount = Math.min(2 + Math.floor(this.round * 0.2), 4);
+        const waveCount = baseCount + (this.enemyWaveNumber - 1);
         const currentCount = this.enemies.filter(e => !(e instanceof Matriarch)).length;
-        const count = Math.min(baseCount, 6 - currentCount);
+        const maxEnemies = 6 + this.enemyWaveNumber;
+        const count = Math.min(waveCount, maxEnemies - currentCount);
         if (count <= 0) return;
 
         for (let i = 0; i < count; i++) {
