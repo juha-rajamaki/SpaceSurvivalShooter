@@ -71,6 +71,9 @@ class Game {
         };
         this._maxCheatLen = 3;
 
+        // Mobile detection (must be before initThreeJS for perf caps)
+        this.isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
         // Initialize Three.js
         this.initThreeJS();
 
@@ -111,6 +114,13 @@ class Game {
         };
 
         this.setupEventListeners();
+
+        // Touch controls for mobile
+        this.touchControls = null;
+        if (this.isMobile) {
+            this.touchControls = new TouchControls(this.input);
+        }
+
         this.initUI();
     }
 
@@ -132,10 +142,10 @@ class Game {
         // Renderer
         this.renderer = new THREE.WebGLRenderer({
             canvas: document.getElementById('gameCanvas'),
-            antialias: true
+            antialias: !this.isMobile
         });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
-        this.renderer.setPixelRatio(window.devicePixelRatio);
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
         // Lighting
         const ambientLight = new THREE.AmbientLight(0x404040);
@@ -166,7 +176,8 @@ class Game {
         });
 
         const starVertices = [];
-        for (let i = 0; i < 5000; i++) {
+        const starCount = this.isMobile ? 2000 : 5000;
+        for (let i = 0; i < starCount; i++) {
             const x = (Math.random() - 0.5) * 300;
             const y = (Math.random() - 0.5) * 300;
             const z = (Math.random() - 0.5) * 300;
@@ -374,6 +385,34 @@ class Game {
             document.getElementById('toggle-sfx').classList.add('disabled');
         }
         document.getElementById('volume-slider').value = window.soundManager.masterVolume * 100;
+
+        // Mobile: prevent default touch behaviors during gameplay
+        if (this.isMobile) {
+            document.addEventListener('touchstart', (e) => {
+                if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' ||
+                    e.target.closest('#start-screen') || e.target.closest('#settings-modal') ||
+                    e.target.closest('#game-over') || e.target.closest('#hof-name-input') ||
+                    e.target.closest('#round-transition')) {
+                    return;
+                }
+                e.preventDefault();
+            }, { passive: false });
+            document.addEventListener('contextmenu', (e) => e.preventDefault());
+        }
+    }
+
+    requestFullscreen() {
+        const el = document.documentElement;
+        const rfs = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+        if (rfs) {
+            rfs.call(el).catch(() => {});
+        }
+    }
+
+    requestLandscape() {
+        if (screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock('landscape').catch(() => {});
+        }
     }
 
     initUI() {
@@ -397,6 +436,18 @@ class Game {
 
         // Display high score on start screen
         this.ui.highScore.textContent = this.highScore;
+
+        // Show mobile controls info instead of keyboard on mobile
+        if (this.isMobile) {
+            const controlsCard = document.querySelector('.card.controls');
+            if (controlsCard) {
+                controlsCard.innerHTML = '<h3>Controls</h3>' +
+                    '<p>Left thumb - Joystick to move</p>' +
+                    '<p>FIRE button - Shoot</p>' +
+                    '<p>SHD button - Hold for Shield</p>' +
+                    '<p>MSL button - Launch Missile</p>';
+            }
+        }
 
         // Display Hall of Fame
         this.displayHallOfFame();
@@ -506,6 +557,13 @@ class Game {
     startGame() {
         this.ui.startScreen.classList.add('hidden');
         this.isRunning = true;
+
+        // Mobile: request fullscreen, lock landscape, show touch controls
+        if (this.isMobile) {
+            this.requestFullscreen();
+            this.requestLandscape();
+            if (this.touchControls) this.touchControls.show();
+        }
 
         // Start background music for round 1
         window.soundManager.startMusic(1);
@@ -701,13 +759,20 @@ class Game {
 
         overlay.appendChild(grid);
 
-        // "Press Enter" prompt
+        // Prompt text
         const prompt = document.createElement('p');
         prompt.className = 'round-prompt';
-        prompt.textContent = 'Press ENTER to start';
+        prompt.textContent = this.isMobile ? 'TAP to start' : 'Press ENTER to start';
         overlay.appendChild(prompt);
 
-        // Pause game until player presses Enter
+        // Tap-to-dismiss for mobile
+        if (this.isMobile) {
+            overlay.addEventListener('touchstart', () => {
+                this.dismissRoundTransition();
+            }, { once: true });
+        }
+
+        // Pause game until player presses Enter (or taps)
         this.isPaused = true;
         this.waitingForRoundStart = true;
     }
@@ -1792,6 +1857,7 @@ class Game {
     endGame() {
         this.gameOver = true;
         this.isRunning = false;
+        if (this.touchControls) this.touchControls.hide();
 
         // Update high score if current score is higher
         if (this.score > this.highScore) {
@@ -1829,6 +1895,7 @@ class Game {
         this.gameOver = true;
         this.gameWon = true;
         this.isRunning = false;
+        if (this.touchControls) this.touchControls.hide();
 
         // Update high score if current score is higher
         if (this.score > this.highScore) {

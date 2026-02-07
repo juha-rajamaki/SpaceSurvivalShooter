@@ -592,28 +592,27 @@ class Asteroid {
                     .add(offset.normalize().multiplyScalar(7));
             }
         } else if (this.size === 'small') {
-            // Small rocks shatter into visible rock debris chunks
+            // Small rocks shatter into many tiny rock debris chunks
             const pos = this.mesh.position.clone();
             const rockMat = new THREE.MeshPhongMaterial({ color: 0x8b7355, emissive: 0x4a3929, shininess: 10, flatShading: true });
-            const count = Math.floor(Math.random() * 2) + 4;
+            const count = Math.floor(Math.random() * 3) + 7;
             for (let i = 0; i < count; i++) {
-                const angle = (Math.PI * 2 * i) / count;
-                const offset = new THREE.Vector3(Math.cos(angle) * 0.6, Math.sin(angle) * 0.6, (Math.random() - 0.5) * 0.4);
-                const size = 0.3 + Math.random() * 0.35;
+                const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.5;
+                const offset = new THREE.Vector3(Math.cos(angle) * 0.5, Math.sin(angle) * 0.5, (Math.random() - 0.5) * 0.5);
+                const size = 0.12 + Math.random() * 0.2;
                 const geo = new THREE.IcosahedronGeometry(size, 0);
-                // Roughen up the chunk vertices
                 const verts = geo.attributes.position.array;
                 for (let v = 0; v < verts.length; v += 3) {
-                    verts[v] += (Math.random() - 0.5) * 0.15;
-                    verts[v+1] += (Math.random() - 0.5) * 0.15;
-                    verts[v+2] += (Math.random() - 0.5) * 0.15;
+                    verts[v] += (Math.random() - 0.5) * 0.08;
+                    verts[v+1] += (Math.random() - 0.5) * 0.08;
+                    verts[v+2] += (Math.random() - 0.5) * 0.08;
                 }
                 geo.attributes.position.needsUpdate = true;
                 geo.computeVertexNormals();
                 const frag = new EnemyDebris(pos.clone().add(offset), geo, rockMat, this.scene);
-                frag.velocity.copy(offset.normalize().multiplyScalar(8 + Math.random() * 6));
-                frag.velocity.z += (Math.random() - 0.5) * 4;
-                frag.lifetime = 2 + Math.random() * 1;
+                frag.velocity.copy(offset.normalize().multiplyScalar(10 + Math.random() * 10));
+                frag.velocity.z += (Math.random() - 0.5) * 6;
+                frag.lifetime = 1.5 + Math.random() * 1;
                 fragments.push(frag);
             }
         }

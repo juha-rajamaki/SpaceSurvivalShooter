@@ -8,6 +8,9 @@ body {
     font-family: 'Rajdhani', 'Arial', sans-serif;
     overflow: hidden;
     background: #000;
+    touch-action: none;
+    -webkit-touch-callout: none;
+    overscroll-behavior: none;
 }
 
 #game-container {
@@ -1250,4 +1253,522 @@ kbd {
     background: linear-gradient(135deg, rgba(0, 200, 255, 0.25) 0%, rgba(120, 80, 255, 0.25) 100%);
     border-color: rgba(0, 220, 255, 0.5);
     box-shadow: 0 0 15px rgba(0, 180, 255, 0.2);
+}
+
+/* ============================================
+   PORTRAIT WARNING
+   ============================================ */
+
+#portrait-warning {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.97);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    text-align: center;
+}
+
+.portrait-message h2 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 22px;
+    margin: 12px 0 8px;
+    letter-spacing: 3px;
+    color: #00d4ff;
+}
+
+.portrait-message p {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.rotate-icon {
+    font-size: 60px;
+    animation: rotateHint 2s ease-in-out infinite;
+}
+
+@keyframes rotateHint {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(90deg); }
+    75% { transform: rotate(90deg); }
+}
+
+/* ============================================
+   TOUCH CONTROLS
+   ============================================ */
+
+#touch-controls {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 80;
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.joystick-zone {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 45%;
+    height: 100%;
+    pointer-events: all;
+}
+
+.joystick-base {
+    display: none;
+    position: fixed;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 2px solid rgba(0, 200, 255, 0.35);
+    background: radial-gradient(circle, rgba(0, 100, 200, 0.12) 0%, rgba(0, 50, 100, 0.04) 70%, transparent 100%);
+    pointer-events: none;
+    z-index: 81;
+}
+
+.joystick-knob {
+    display: none;
+    position: fixed;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0, 200, 255, 0.45) 0%, rgba(0, 100, 200, 0.25) 100%);
+    border: 2px solid rgba(0, 220, 255, 0.5);
+    box-shadow: 0 0 15px rgba(0, 200, 255, 0.25);
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    z-index: 82;
+}
+
+.action-buttons {
+    position: absolute;
+    right: 16px;
+    bottom: 16px;
+    width: 180px;
+    height: 160px;
+    pointer-events: none;
+    padding-right: env(safe-area-inset-right, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.touch-btn {
+    position: absolute;
+    border-radius: 50%;
+    border: 2px solid;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    pointer-events: all;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.08s;
+}
+
+.touch-btn.active {
+    transform: scale(0.88);
+    filter: brightness(1.4);
+}
+
+.touch-fire {
+    width: 76px;
+    height: 76px;
+    bottom: 0;
+    right: 0;
+    background: radial-gradient(circle, rgba(255, 60, 0, 0.35) 0%, rgba(255, 30, 0, 0.15) 100%);
+    border-color: rgba(255, 80, 0, 0.55);
+    color: rgba(255, 150, 50, 0.85);
+    font-size: 11px;
+    box-shadow: 0 0 20px rgba(255, 60, 0, 0.25);
+}
+
+.touch-shield {
+    width: 58px;
+    height: 58px;
+    bottom: 88px;
+    right: 80px;
+    background: radial-gradient(circle, rgba(0, 150, 255, 0.25) 0%, rgba(0, 80, 200, 0.1) 100%);
+    border-color: rgba(0, 170, 255, 0.45);
+    color: rgba(0, 200, 255, 0.85);
+    font-size: 9px;
+    box-shadow: 0 0 15px rgba(0, 150, 255, 0.15);
+}
+
+.touch-missile {
+    width: 52px;
+    height: 52px;
+    bottom: 88px;
+    right: 0;
+    background: radial-gradient(circle, rgba(255, 100, 0, 0.25) 0%, rgba(200, 50, 0, 0.1) 100%);
+    border-color: rgba(255, 100, 0, 0.45);
+    color: rgba(255, 140, 0, 0.85);
+    font-size: 8px;
+    box-shadow: 0 0 12px rgba(255, 100, 0, 0.15);
+}
+
+/* ============================================
+   RESPONSIVE: MOBILE PORTRAIT (show warning)
+   ============================================ */
+
+@media (orientation: portrait) and (max-width: 900px) {
+    #portrait-warning {
+        display: flex !important;
+    }
+}
+
+/* ============================================
+   RESPONSIVE: MOBILE LANDSCAPE
+   ============================================ */
+
+@media (max-width: 900px) and (orientation: landscape) {
+    /* Health bar */
+    #health-bar {
+        width: clamp(100px, 22vw, 300px) !important;
+        height: 22px;
+    }
+
+    #health-text {
+        font-size: 10px;
+    }
+
+    #health-container {
+        bottom: 10px;
+        left: 10px;
+        padding: 5px 8px;
+        padding-left: calc(8px + env(safe-area-inset-left, 0px));
+    }
+
+    #health-container .label {
+        font-size: 10px;
+    }
+
+    /* Ammo - moved left to avoid touch buttons */
+    #ammo-container {
+        bottom: 10px;
+        right: 130px;
+        padding: 5px 8px;
+    }
+
+    #ammo {
+        font-size: 16px;
+    }
+
+    #ammo-container .label {
+        font-size: 10px;
+    }
+
+    /* Missile count */
+    #missile-container {
+        bottom: 10px;
+    }
+
+    /* Stats (top-left) */
+    #stats {
+        padding: 5px 8px;
+        padding-left: calc(8px + env(safe-area-inset-left, 0px));
+    }
+
+    #score {
+        font-size: 14px;
+    }
+
+    #round {
+        font-size: 13px;
+    }
+
+    .stat-label {
+        font-size: 9px;
+    }
+
+    /* Timer */
+    #timer-container {
+        top: 6px;
+        padding: 3px 12px;
+    }
+
+    #timer {
+        font-size: 20px;
+    }
+
+    /* Boss health */
+    #boss-health-container {
+        top: 36px;
+    }
+
+    #boss-health-bar {
+        width: clamp(180px, 35vw, 400px) !important;
+        height: 16px;
+    }
+
+    .boss-name {
+        font-size: 13px;
+    }
+
+    #hatch-health-track {
+        width: clamp(90px, 18vw, 200px) !important;
+    }
+
+    /* Settings button */
+    #settings-btn {
+        top: 6px;
+        right: 8px;
+        width: 36px;
+        height: 36px;
+        font-size: 18px;
+    }
+
+    /* Shield bar */
+    #shield-bar {
+        width: 80px;
+        height: 10px;
+    }
+
+    /* Power-ups */
+    #power-ups {
+        top: 45px;
+        left: 10px;
+        padding-left: env(safe-area-inset-left, 0px);
+    }
+
+    /* Low ammo warning */
+    #low-ammo-warning {
+        bottom: 45px;
+        right: 140px;
+        font-size: 13px;
+    }
+
+    /* Round transition */
+    #round-transition h2 {
+        font-size: 26px;
+        margin-bottom: 14px;
+    }
+
+    #round-transition .round-items-grid {
+        gap: 8px;
+        max-width: 90vw;
+    }
+
+    #round-transition .round-item .item-icon {
+        width: 38px;
+        height: 38px;
+        font-size: 22px;
+    }
+
+    #round-transition .round-item .item-label {
+        font-size: 10px;
+    }
+
+    .round-prompt {
+        font-size: 11px !important;
+        margin-top: 14px !important;
+    }
+
+    .round-stats h3 {
+        font-size: 16px;
+        margin-bottom: 6px;
+    }
+
+    .stat-entry {
+        font-size: 13px;
+    }
+
+    .round-bonus {
+        font-size: 12px;
+    }
+
+    /* Start screen */
+    #start-screen {
+        padding: 10px 14px;
+        padding-left: calc(14px + env(safe-area-inset-left, 0px));
+        padding-right: calc(14px + env(safe-area-inset-right, 0px));
+        justify-content: flex-start;
+        padding-top: 12px;
+    }
+
+    #start-screen h1 {
+        font-size: 24px;
+        margin-bottom: 2px;
+        letter-spacing: 2px;
+    }
+
+    .start-header {
+        margin-bottom: 8px;
+    }
+
+    #high-score-display p {
+        font-size: 13px;
+    }
+
+    #high-score {
+        font-size: 16px;
+    }
+
+    .start-columns {
+        flex-direction: column;
+        gap: 8px;
+        max-width: 100%;
+        margin-bottom: 10px;
+        overflow-y: auto;
+        flex-shrink: 1;
+        min-height: 0;
+    }
+
+    .start-col-left {
+        gap: 8px;
+    }
+
+    .start-col-right {
+        width: 100%;
+        flex-shrink: 0;
+    }
+
+    .card {
+        padding: 8px 10px;
+    }
+
+    .controls h3,
+    .items-guide h3 {
+        font-size: 10px;
+        margin-bottom: 6px;
+    }
+
+    .controls p {
+        margin: 4px 0;
+        font-size: 12px;
+    }
+
+    .items-grid {
+        gap: 6px;
+    }
+
+    .item-entry {
+        min-width: 55px;
+    }
+
+    .item-icon {
+        width: 36px;
+        height: 36px;
+        font-size: 20px;
+        border-radius: 8px;
+    }
+
+    .item-label {
+        font-size: 9px;
+    }
+
+    #hall-of-fame h3 {
+        font-size: 12px;
+        margin-bottom: 6px;
+    }
+
+    .hof-entry {
+        padding: 5px 8px;
+        margin: 2px 4px;
+        font-size: 12px;
+    }
+
+    #start-btn, #restart-btn {
+        padding: 10px 32px;
+        font-size: 13px;
+        margin-bottom: 8px;
+        letter-spacing: 3px;
+    }
+
+    /* Game over */
+    #game-over {
+        width: 80vw;
+        max-width: 380px;
+        padding: 20px 24px;
+    }
+
+    #game-over h1 {
+        font-size: 26px;
+        margin-bottom: 12px;
+    }
+
+    #game-over p {
+        font-size: 15px;
+        margin: 8px 0;
+    }
+
+    /* Settings modal */
+    #settings-panel {
+        min-width: unset;
+        width: 80vw;
+        max-width: 320px;
+        padding: 18px 22px;
+    }
+
+    /* HoF name input */
+    #hof-name-input {
+        width: 80vw;
+        max-width: 350px;
+        padding: 20px 24px;
+        top: 35%;
+    }
+
+    #hof-name-input h1 {
+        font-size: 24px;
+    }
+
+    #winner-name {
+        font-size: 16px;
+    }
+}
+
+/* Very small landscape screens (short phones) */
+@media (max-height: 380px) and (orientation: landscape) {
+    #stats {
+        padding: 3px 6px;
+    }
+
+    #timer-container {
+        top: 3px;
+        padding: 2px 8px;
+    }
+
+    #timer {
+        font-size: 16px;
+    }
+
+    #health-bar {
+        width: clamp(80px, 18vw, 160px) !important;
+        height: 18px;
+    }
+
+    #health-text {
+        font-size: 9px;
+    }
+
+    #boss-health-container {
+        top: 28px;
+    }
+
+    #start-screen h1 {
+        font-size: 20px;
+    }
+
+    .start-columns {
+        max-height: calc(100vh - 110px);
+    }
+
+    .items-guide h3:not(:first-child) {
+        margin-top: 8px;
+    }
 }
