@@ -64,12 +64,11 @@ class Game {
 
         // Cheat code tracker
         this._cheatBuffer = [];
-        this._cheatCodes = {
-            'ken': () => this.activateCheat(10),
-            'son': () => this.activateCheat(6),
-            'nom': () => this.activateCheat(8)
-        };
-        this._maxCheatLen = 3;
+        this._cheatCodes = {};
+        for (let i = 1; i <= 10; i++) {
+            this._cheatCodes['ken' + i] = ((r) => () => this.activateCheat(r))(i);
+        }
+        this._maxCheatLen = 5;
 
         // Mobile detection (must be before initThreeJS for perf caps)
         this.isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
