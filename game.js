@@ -2,45 +2,45 @@
 
 const ROUND_CONFIG = [
     // R1: Tutorial — enemies don't shoot
-    { asteroids: 8, hugeAsteroids: 0, enemies: 2, missileShips: 0, mines: 0, blackHoles: 0, matriarch: 0,
+    { asteroids: 12, hugeAsteroids: 0, enemies: 2, missileShips: 0, mines: 0, blackHoles: 0, matriarch: 0,
       enemySpeed: 25, enemyHealth: 40, enemyFireRate: 999,
-      msHealth: 0, msFireRate: 0, largeBias: 0.40 },
+      msHealth: 0, msFireRate: 0, largeBias: 0.45 },
     // R2: Enemies start shooting (slowly)
-    { asteroids: 8, hugeAsteroids: 0, enemies: 3, missileShips: 0, mines: 0, blackHoles: 0, matriarch: 0,
+    { asteroids: 14, hugeAsteroids: 0, enemies: 3, missileShips: 0, mines: 0, blackHoles: 0, matriarch: 0,
       enemySpeed: 26, enemyHealth: 45, enemyFireRate: 1.2,
-      msHealth: 0, msFireRate: 0, largeBias: 0.40 },
+      msHealth: 0, msFireRate: 0, largeBias: 0.45 },
     // R3: Ramping up
-    { asteroids: 10, hugeAsteroids: 0, enemies: 4, missileShips: 0, mines: 0, blackHoles: 0, matriarch: 0,
+    { asteroids: 16, hugeAsteroids: 1, enemies: 4, missileShips: 0, mines: 0, blackHoles: 0, matriarch: 0,
       enemySpeed: 28, enemyHealth: 50, enemyFireRate: 1.0,
-      msHealth: 0, msFireRate: 0, largeBias: 0.40 },
+      msHealth: 0, msFireRate: 0, largeBias: 0.50 },
     // R4: NEW — mines
-    { asteroids: 10, hugeAsteroids: 0, enemies: 4, missileShips: 0, mines: 2, blackHoles: 0, matriarch: 0,
+    { asteroids: 16, hugeAsteroids: 1, enemies: 4, missileShips: 0, mines: 2, blackHoles: 0, matriarch: 0,
       enemySpeed: 30, enemyHealth: 55, enemyFireRate: 0.9,
-      msHealth: 0, msFireRate: 0, largeBias: 0.50 },
+      msHealth: 0, msFireRate: 0, largeBias: 0.55 },
     // R5: NEW — huge asteroid, dual weapon available
-    { asteroids: 10, hugeAsteroids: 1, enemies: 5, missileShips: 0, mines: 2, blackHoles: 0, matriarch: 0,
+    { asteroids: 18, hugeAsteroids: 2, enemies: 5, missileShips: 0, mines: 2, blackHoles: 0, matriarch: 0,
       enemySpeed: 32, enemyHealth: 60, enemyFireRate: 0.85,
-      msHealth: 0, msFireRate: 0, largeBias: 0.50 },
+      msHealth: 0, msFireRate: 0, largeBias: 0.55 },
     // R6: NEW — missile ships + player missiles
-    { asteroids: 12, hugeAsteroids: 1, enemies: 5, missileShips: 1, mines: 2, blackHoles: 0, matriarch: 0,
+    { asteroids: 18, hugeAsteroids: 2, enemies: 5, missileShips: 1, mines: 2, blackHoles: 0, matriarch: 0,
       enemySpeed: 33, enemyHealth: 65, enemyFireRate: 0.8,
-      msHealth: 80, msFireRate: 3.0, largeBias: 0.50 },
+      msHealth: 80, msFireRate: 3.0, largeBias: 0.55 },
     // R7: NEW — black holes
-    { asteroids: 12, hugeAsteroids: 2, enemies: 6, missileShips: 1, mines: 3, blackHoles: 1, matriarch: 0,
+    { asteroids: 20, hugeAsteroids: 3, enemies: 6, missileShips: 1, mines: 3, blackHoles: 1, matriarch: 0,
       enemySpeed: 34, enemyHealth: 70, enemyFireRate: 0.75,
-      msHealth: 85, msFireRate: 2.8, largeBias: 0.55 },
+      msHealth: 85, msFireRate: 2.8, largeBias: 0.60 },
     // R8: Peak non-boss difficulty
-    { asteroids: 14, hugeAsteroids: 2, enemies: 7, missileShips: 2, mines: 3, blackHoles: 1, matriarch: 0,
+    { asteroids: 22, hugeAsteroids: 3, enemies: 7, missileShips: 2, mines: 3, blackHoles: 1, matriarch: 0,
       enemySpeed: 35, enemyHealth: 75, enemyFireRate: 0.7,
-      msHealth: 90, msFireRate: 2.6, largeBias: 0.55 },
+      msHealth: 90, msFireRate: 2.6, largeBias: 0.60 },
     // R9: Slight ease before boss
-    { asteroids: 12, hugeAsteroids: 2, enemies: 6, missileShips: 2, mines: 2, blackHoles: 1, matriarch: 0,
+    { asteroids: 18, hugeAsteroids: 3, enemies: 6, missileShips: 2, mines: 2, blackHoles: 1, matriarch: 0,
       enemySpeed: 36, enemyHealth: 80, enemyFireRate: 0.65,
-      msHealth: 95, msFireRate: 2.5, largeBias: 0.55 },
+      msHealth: 95, msFireRate: 2.5, largeBias: 0.60 },
     // R10: BOSS — reduced clutter, Matriarch focus
-    { asteroids: 6, hugeAsteroids: 0, enemies: 3, missileShips: 1, mines: 1, blackHoles: 0, matriarch: 1,
+    { asteroids: 10, hugeAsteroids: 1, enemies: 3, missileShips: 1, mines: 1, blackHoles: 0, matriarch: 1,
       enemySpeed: 36, enemyHealth: 80, enemyFireRate: 0.65,
-      msHealth: 95, msFireRate: 2.5, largeBias: 0.30 },
+      msHealth: 95, msFireRate: 2.5, largeBias: 0.40 },
 ];
 
 class Game {
@@ -65,7 +65,7 @@ class Game {
         // Cheat code tracker
         this._cheatBuffer = [];
         this._cheatCodes = {};
-        for (let i = 1; i <= 10; i++) {
+        for (let i = 0; i <= 10; i++) {
             this._cheatCodes['ken' + i] = ((r) => () => this.activateCheat(r))(i);
         }
         this._maxCheatLen = 5;
@@ -225,18 +225,16 @@ class Game {
 
             // Cheat code detection
             const key = e.key.toLowerCase();
-            if (this.isRunning && !this.gameOver) {
-                this._cheatBuffer.push(key);
-                if (this._cheatBuffer.length > this._maxCheatLen) {
-                    this._cheatBuffer.shift();
-                }
-                const typed = this._cheatBuffer.join('');
-                for (const [code, fn] of Object.entries(this._cheatCodes)) {
-                    if (typed.endsWith(code)) {
-                        this._cheatBuffer = [];
-                        fn();
-                        break;
-                    }
+            this._cheatBuffer.push(key);
+            if (this._cheatBuffer.length > this._maxCheatLen) {
+                this._cheatBuffer.shift();
+            }
+            const typed = this._cheatBuffer.join('');
+            for (const [code, fn] of Object.entries(this._cheatCodes)) {
+                if (typed.endsWith(code)) {
+                    this._cheatBuffer = [];
+                    fn();
+                    break;
                 }
             }
 
@@ -420,6 +418,7 @@ class Game {
             ammo: document.getElementById('ammo'),
             round: document.getElementById('round'),
             timer: document.getElementById('timer'),
+            timerLevel: document.getElementById('timer-level'),
             healthFill: document.getElementById('health-fill'),
             healthText: document.getElementById('health-text'),
             shieldBarContainer: document.getElementById('shield-bar-container'),
@@ -445,6 +444,14 @@ class Game {
                     '<p>FIRE button - Shoot</p>' +
                     '<p>SHD button - Hold for Shield</p>' +
                     '<p>MSL button - Launch Missile</p>';
+            }
+            const settingsControls = document.getElementById('settings-controls');
+            if (settingsControls) {
+                settingsControls.innerHTML = '<h3>Controls</h3>' +
+                    '<div class="settings-row"><span class="settings-label">Move</span><span class="settings-keys">Joystick (left)</span></div>' +
+                    '<div class="settings-row"><span class="settings-label">Fire</span><span class="settings-keys">FIRE button</span></div>' +
+                    '<div class="settings-row"><span class="settings-label">Shield</span><span class="settings-keys">SHD button (hold)</span></div>' +
+                    '<div class="settings-row"><span class="settings-label">Missiles</span><span class="settings-keys">MSL button (from L6)</span></div>';
             }
         }
 
@@ -539,10 +546,10 @@ class Game {
             const round = document.createElement('span');
             round.className = 'hof-round';
             if (entry.won) {
-                round.textContent = 'R10 Victory!';
+                round.textContent = 'L10 Victory!';
                 round.classList.add('hof-victory');
             } else {
-                round.textContent = `R${entry.round}/${this.maxRounds}`;
+                round.textContent = `L${entry.round}/${this.maxRounds}`;
             }
 
             row.appendChild(rank);
@@ -645,7 +652,7 @@ class Game {
             statsSection.className = 'round-stats';
 
             const statsHeading = document.createElement('h3');
-            statsHeading.textContent = `Round ${completedRound} Complete!`;
+            statsHeading.textContent = `Level ${completedRound} Complete!`;
             statsHeading.style.color = '#00ff00';
             statsSection.appendChild(statsHeading);
 
@@ -682,7 +689,7 @@ class Game {
         }
 
         const heading = document.createElement('h2');
-        heading.textContent = `Round ${roundNumber}`;
+        heading.textContent = `Level ${roundNumber}`;
         overlay.appendChild(heading);
 
         const grid = document.createElement('div');
@@ -695,7 +702,7 @@ class Game {
         ];
 
         if (config.hugeAsteroidCount > 0) {
-            items.push({ key: 'huge_asteroid', label: 'Huge Asteroid', count: config.hugeAsteroidCount, cls: 'icon-asteroid', isNew: roundNumber === 5 });
+            items.push({ key: 'huge_asteroid', label: 'Huge Asteroid', count: config.hugeAsteroidCount, cls: 'icon-asteroid', isNew: roundNumber === 3 });
         }
         if (config.missileShipCount > 0) {
             items.push({ key: 'missileship', label: 'Missile Ships', count: config.missileShipCount, cls: 'icon-enemy', isNew: roundNumber === 6 });
@@ -724,7 +731,7 @@ class Game {
 
             const iconSpan = document.createElement('span');
             iconSpan.className = `item-icon ${item.cls}`;
-            // Use 3D preview if available
+            // Use 3D preview if available, otherwise CSS shapes
             if (this.itemPreviews && this.itemPreviews[item.key]) {
                 const img = document.createElement('img');
                 img.src = this.itemPreviews[item.key];
@@ -732,6 +739,21 @@ class Game {
                 img.style.width = '100%';
                 img.style.height = '100%';
                 iconSpan.appendChild(img);
+            } else {
+                const shapeClassMap = {
+                    asteroid: 'shape-rock',
+                    huge_asteroid: 'shape-rock shape-rock-huge',
+                    enemy: 'shape-enemy',
+                    missileship: 'shape-missile-ship',
+                    mine: 'shape-mine',
+                    blackhole: 'shape-blackhole',
+                    matriarch: 'shape-matriarch'
+                };
+                if (shapeClassMap[item.key]) {
+                    const shapeSpan = document.createElement('span');
+                    shapeSpan.className = shapeClassMap[item.key];
+                    iconSpan.appendChild(shapeSpan);
+                }
             }
 
             const labelSpan = document.createElement('span');
@@ -924,8 +946,10 @@ class Game {
 
         const currentTime = Date.now() * 0.001;
 
-        // Update round timer
-        this.currentTime -= deltaTime;
+        // Update round timer (no countdown on boss level)
+        if (this.round !== 10) {
+            this.currentTime -= deltaTime;
+        }
 
         // Countdown beeps for last 5 seconds
         const secondsLeft = Math.ceil(this.currentTime);
@@ -1085,11 +1109,29 @@ class Game {
         }
 
         // Update asteroids
-        this.asteroids.forEach((asteroid, index) => {
+        for (let i = this.asteroids.length - 1; i >= 0; i--) {
+            const asteroid = this.asteroids[i];
             asteroid.update(deltaTime);
+            let swallowed = false;
+            this.blackHoles.forEach(blackHole => {
+                const pullScale = asteroid.size === 'huge' ? 0.05 : asteroid.size === 'large' ? 0.15 : asteroid.size === 'medium' ? 0.3 : 0.5;
+                this.physics.applyGravitationalPull(asteroid, blackHole, pullScale);
+                // Black hole breaks asteroids on contact
+                const dist = asteroid.mesh.position.distanceTo(blackHole.mesh.position);
+                if (dist < blackHole.radius + asteroid.radius) {
+                    this.particleSystem.createExplosion(asteroid.mesh.position, new THREE.Color(0.3, 0.1, 0.5), 20);
+                    window.soundManager.playExplosion(asteroid.size);
+                    const fragments = asteroid.break();
+                    asteroid.destroy();
+                    this.asteroids.splice(i, 1);
+                    this.collectAsteroidFragments(fragments);
+                    swallowed = true;
+                }
+            });
+            if (swallowed) continue;
             this.physics.updatePosition(asteroid, deltaTime);
             this.physics.keepInBounds(asteroid, this.bounds);
-        });
+        }
 
         // Update enemies
         const matriarchSpawns = [];
@@ -1121,22 +1163,56 @@ class Game {
             this.enemies.push(...matriarchSpawns);
         }
 
-        // Enemy respawning - when all regular enemies are destroyed, spawn replacements
-        const matriarchAlive = this.enemies.some(e => e instanceof Matriarch);
-        const regularEnemies = this.enemies.filter(e => !(e instanceof Matriarch) && !(e instanceof MissileShip));
-        const missileShips = this.enemies.filter(e => e instanceof MissileShip);
-        // No respawn waves during R10 boss fight
-        if (this.round === 10 && matriarchAlive) {
-            this.enemyRespawnTimer = 0;
-        } else if (regularEnemies.length === 0 && missileShips.length === 0 && !this.isPaused && !this.gameOver && this.enemyWaveNumber < 4) {
+        // Enemy respawning
+        const maxWaves = this.round >= 7 ? 6 : 4;
+        if (!this.isPaused && !this.gameOver && (this.round === 10 || this.enemyWaveNumber < maxWaves)) {
             this.enemyRespawnTimer += deltaTime;
-            if (this.enemyRespawnTimer >= 15) {
+            const elapsed = this.roundTime - this.currentTime;
+            const progress = this.round === 10 ? 0.5 : Math.min(elapsed / this.roundTime, 1);
+            const baseDelay = Math.max(5, 16 - this.round);
+            if (!this._nextRespawnDelay) {
+                const base = Math.max(3, baseDelay * (1 - progress * 0.6));
+                this._nextRespawnDelay = base * (0.7 + Math.random() * 0.6);
+            }
+            const respawnDelay = this._nextRespawnDelay;
+            // Cap non-Matriarch enemies on boss level
+            let nonBossCount = 0;
+            if (this.round === 10) {
+                for (let i = 0; i < this.enemies.length; i++) {
+                    if (!(this.enemies[i] instanceof Matriarch)) nonBossCount++;
+                }
+            }
+            if (this.enemyRespawnTimer >= respawnDelay && (this.round !== 10 || nonBossCount < 4)) {
                 this.enemyRespawnTimer = 0;
+                this._nextRespawnDelay = null;
                 this.enemyWaveNumber++;
                 this.spawnReplacementEnemies();
             }
         } else {
             this.enemyRespawnTimer = 0;
+        }
+
+        // Spawn random asteroids during boss level
+        if (this.round === 10 && !this.isPaused && !this.gameOver) {
+            if (!this._asteroidSpawnTimer) this._asteroidSpawnTimer = 0;
+            if (!this._nextAsteroidDelay) this._nextAsteroidDelay = 8 + Math.random() * 4;
+            this._asteroidSpawnTimer += deltaTime;
+            if (this._asteroidSpawnTimer >= this._nextAsteroidDelay && this.asteroids.length < 15) {
+                this._asteroidSpawnTimer = 0;
+                this._nextAsteroidDelay = 8 + Math.random() * 4;
+                const count = 2 + Math.floor(Math.random() * 3);
+                for (let i = 0; i < count; i++) {
+                    const edge = Math.random();
+                    let x, y;
+                    if (edge < 0.25) { x = this.bounds.minX + 5; y = (Math.random() - 0.5) * this.bounds.height; }
+                    else if (edge < 0.5) { x = this.bounds.maxX - 5; y = (Math.random() - 0.5) * this.bounds.height; }
+                    else if (edge < 0.75) { x = (Math.random() - 0.5) * this.bounds.width; y = this.bounds.minY + 5; }
+                    else { x = (Math.random() - 0.5) * this.bounds.width; y = this.bounds.maxY - 5; }
+                    const pos = new THREE.Vector3(x, y, 0);
+                    const size = Math.random() < 0.3 ? 'large' : Math.random() < 0.5 ? 'medium' : 'small';
+                    this.asteroids.push(new Asteroid(pos, size, this.scene));
+                }
+            }
         }
 
         // Update mines
@@ -1224,9 +1300,9 @@ class Game {
         }
 
         // Update missiles
+        const missileTargets = this.playerMissiles.length > 0 ? [...this.enemies, ...this.asteroids] : null;
         for (let i = this.playerMissiles.length - 1; i >= 0; i--) {
-            // Update target list so missiles track current enemies
-            this.playerMissiles[i].targets = [...this.enemies, ...this.asteroids];
+            this.playerMissiles[i].targets = missileTargets;
             const shouldRemove = this.playerMissiles[i].update(deltaTime);
             if (shouldRemove) {
                 this.playerMissiles[i].destroy();
@@ -1280,6 +1356,7 @@ class Game {
                         const dmg = blastDamage * (1 - dist / blastRadius);
                         if (this.asteroids[j].takeDamage(dmg)) {
                             this.particleSystem.createExplosion(this.asteroids[j].mesh.position, new THREE.Color(0.7, 0.4, 0.1), 30);
+                            window.soundManager.playExplosion(this.asteroids[j].size);
                             // Huge asteroids drop varied loot
                             if (this.asteroids[j].size === 'huge') {
                                 const aPos = this.asteroids[j].mesh.position.clone();
@@ -1287,7 +1364,7 @@ class Game {
                                 for (let d = 0; d < drops; d++) {
                                     const off = new THREE.Vector3((Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3, 0);
                                     const r = Math.random();
-                                    const dtype = r < 0.25 ? 'ammo' : r < 0.40 ? 'health' : r < 0.50 ? 'shield' : 'score';
+                                    const dtype = r < 0.22 ? 'ammo' : r < 0.42 ? 'health' : r < 0.55 ? 'shield' : r < 0.70 ? 'bigscore' : r < 0.82 ? 'weapon' : r < 0.92 ? (this.round >= 5 ? 'dualweapon' : 'weapon') : 'score';
                                     this.powerUpManager.spawnPowerUpAt(aPos.clone().add(off), dtype);
                                 }
                             }
@@ -1340,12 +1417,43 @@ class Game {
             }
         }
 
-        // Update debris (visual only, no collisions)
+        // Update debris and check collisions with enemies (cap collision checks)
+        let debrisCollisionChecks = 0;
         for (let i = this.debris.length - 1; i >= 0; i--) {
-            const shouldRemove = this.debris[i].update(deltaTime);
+            const d = this.debris[i];
+            const shouldRemove = d.update(deltaTime);
             if (shouldRemove) {
-                this.debris[i].destroy();
+                d.destroy();
                 this.debris.splice(i, 1);
+                continue;
+            }
+            // Debris damages enemies on contact (capped per frame)
+            if (d.velocity.lengthSq() > 4 && debrisCollisionChecks < 20) {
+                debrisCollisionChecks++;
+                let debrisHit = false;
+                for (let j = this.enemies.length - 1; j >= 0; j--) {
+                    const enemy = this.enemies[j];
+                    if (!enemy || !enemy.mesh) continue;
+                    const dist = d.mesh.position.distanceTo(enemy.mesh.position);
+                    if (dist < d.radius + (enemy.radius || 2)) {
+                        if (enemy.takeDamage(d.damage, d.mesh.position.clone())) {
+                            this.particleSystem.createExplosion(enemy.mesh.position, new THREE.Color(1, 0.5, 0), 30);
+                            window.soundManager.playExplosion('small');
+                            const fragments = enemy.break();
+                            this.enemies.splice(j, 1);
+                            this.debris.push(...fragments);
+                            this.roundStats.enemiesKilled++;
+                            this.addScore(200);
+                        }
+                        debrisHit = true;
+                        break;
+                    }
+                }
+                if (debrisHit) {
+                    d.destroy();
+                    this.debris.splice(i, 1);
+                    continue;
+                }
             }
         }
 
@@ -1361,6 +1469,21 @@ class Game {
             }
 
             this.updatePowerUpUI();
+        }
+
+        // Black hole pulls and destroys power-ups
+        if (this.blackHoles.length > 0) {
+            for (let i = this.powerUpManager.powerUps.length - 1; i >= 0; i--) {
+                const pu = this.powerUpManager.powerUps[i];
+                this.blackHoles.forEach(blackHole => {
+                    this.physics.applyGravitationalPull(pu, blackHole, 0.3);
+                    const dist = pu.mesh.position.distanceTo(blackHole.mesh.position);
+                    if (dist < blackHole.radius + pu.radius) {
+                        pu.destroy();
+                        this.powerUpManager.powerUps.splice(i, 1);
+                    }
+                });
+            }
         }
 
         // Update particle system
@@ -1449,9 +1572,12 @@ class Game {
                             let dropType = 'score';
                             if (this.asteroids[j].size === 'huge') {
                                 const r = Math.random();
-                                if (r < 0.25) dropType = 'ammo';
-                                else if (r < 0.40) dropType = 'health';
-                                else if (r < 0.50) dropType = 'shield';
+                                if (r < 0.22) dropType = 'ammo';
+                                else if (r < 0.42) dropType = 'health';
+                                else if (r < 0.55) dropType = 'shield';
+                                else if (r < 0.70) dropType = 'bigscore';
+                                else if (r < 0.82) dropType = 'weapon';
+                                else if (r < 0.92) dropType = this.round >= 5 ? 'dualweapon' : 'weapon';
                                 else dropType = 'score';
                             }
                             this.powerUpManager.spawnPowerUpAt(
@@ -1548,9 +1674,41 @@ class Game {
         // Enemy laser vs player
         for (let i = this.enemyLasers.length - 1; i >= 0; i--) {
             if (this.physics.checkCollision(this.enemyLasers[i], this.player)) {
-                this.damagePlayer(this.enemyLasers[i].damage);
-                this.enemyLasers[i].destroy();
+                const laser = this.enemyLasers[i];
+                const hitPos = laser.mesh.position.clone();
+                const isBossLaser = laser.isBossLaser;
+                this.particleSystem.createExplosion(
+                    hitPos,
+                    isBossLaser ? new THREE.Color(1, 0, 1) : new THREE.Color(1, 0.2, 0),
+                    isBossLaser ? 20 : 8
+                );
+                window.soundManager.playHit();
+                this.damagePlayer(laser.damage);
+                laser.destroy();
                 this.enemyLasers.splice(i, 1);
+            }
+        }
+
+        // Boss lasers vs other enemies (friendly fire)
+        for (let i = this.enemyLasers.length - 1; i >= 0; i--) {
+            const laser = this.enemyLasers[i];
+            if (!laser || !laser.isBossLaser) continue;
+            for (let j = this.enemies.length - 1; j >= 0; j--) {
+                if (this.enemies[j] instanceof Matriarch) continue;
+                if (this.physics.checkCollision(laser, this.enemies[j])) {
+                    if (this.enemies[j].takeDamage(laser.damage, laser.mesh.position.clone())) {
+                        this.particleSystem.createExplosion(this.enemies[j].mesh.position, new THREE.Color(1, 0.5, 0), 30);
+                        window.soundManager.playExplosion('small');
+                        const fragments = this.enemies[j].break();
+                        this.debris.push(...fragments);
+                        this.enemies.splice(j, 1);
+                        this.roundStats.enemiesKilled++;
+                        this.addScore(200);
+                    }
+                    laser.destroy();
+                    this.enemyLasers.splice(i, 1);
+                    break;
+                }
             }
         }
 
@@ -1559,10 +1717,10 @@ class Game {
             const asteroid = this.asteroids[i];
             if (this.physics.checkCollision(this.player, asteroid)) {
                 this.physics.bounceObjects(this.player, asteroid);
-                // Small rock debris at collision point
+                // Tiny rock dust pixels at collision point
                 const midpoint = this.player.mesh.position.clone()
                     .add(asteroid.mesh.position).multiplyScalar(0.5);
-                this.particleSystem.createDebris(midpoint, new THREE.Color(0.7, 0.5, 0.3), 10);
+                this.particleSystem.createRockDust(midpoint, new THREE.Color(0.7, 0.5, 0.3), 25);
 
                 if (asteroid.size === 'huge') {
                     this.damagePlayer(80);
@@ -1597,11 +1755,31 @@ class Game {
             }
         });
 
-        // Player vs black holes
+        // Matriarch body crushes other enemies (only on boss level)
+        const matriarch = this.round === 10 ? this.enemies.find(e => e instanceof Matriarch) : null;
+        if (matriarch) {
+            for (let j = this.enemies.length - 1; j >= 0; j--) {
+                const e = this.enemies[j];
+                if (e instanceof Matriarch) continue;
+                if (this.physics.checkCollision(matriarch, e)) {
+                    if (e.takeDamage(50, matriarch.mesh.position.clone())) {
+                        this.particleSystem.createExplosion(e.mesh.position, new THREE.Color(1, 0, 1), 20);
+                        window.soundManager.playExplosion('small');
+                        const fragments = e.break();
+                        this.debris.push(...fragments);
+                        this.enemies.splice(j, 1);
+                        this.roundStats.enemiesKilled++;
+                        this.addScore(200);
+                    }
+                }
+            }
+        }
+
+        // Player vs black holes — instant death
         this.blackHoles.forEach(blackHole => {
             const distance = this.player.mesh.position.distanceTo(blackHole.mesh.position);
             if (distance < blackHole.radius) {
-                this.damagePlayer(50); // Black hole
+                this.damagePlayer(9999);
             }
         });
     }
@@ -1693,11 +1871,14 @@ class Game {
     }
 
     showPowerUpMessage(message) {
+        if (!this._activeMessages) this._activeMessages = [];
+        const slot = this._activeMessages.length;
         const messageEl = document.createElement('div');
         messageEl.textContent = message;
+        const topPercent = 25 + slot * 5;
         messageEl.style.cssText = `
             position: fixed;
-            top: 25%;
+            top: ${topPercent}%;
             left: 50%;
             transform: translate(-50%, -50%);
             color: #00ff00;
@@ -1708,8 +1889,13 @@ class Game {
             animation: fadeUp 2s ease-out forwards;
         `;
         document.body.appendChild(messageEl);
+        this._activeMessages.push(messageEl);
 
-        setTimeout(() => messageEl.remove(), 2000);
+        setTimeout(() => {
+            messageEl.remove();
+            const idx = this._activeMessages.indexOf(messageEl);
+            if (idx !== -1) this._activeMessages.splice(idx, 1);
+        }, 2000);
     }
 
     updateUI() {
@@ -1786,19 +1972,24 @@ class Game {
 
         // Update round display
         this.ui.round.textContent = `${this.round}/${this.maxRounds}`;
+        this.ui.timerLevel.textContent = `L${this.round}`;
 
-        // Update timer display (M:SS format)
-        const minutes = Math.floor(this.currentTime / 60);
-        const seconds = Math.floor(this.currentTime % 60);
-        this.ui.timer.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-
-        // Change timer color when time is running out
-        if (this.currentTime < 30) {
-            this.ui.timer.style.color = '#ff0000'; // Red
-        } else if (this.currentTime < 60) {
-            this.ui.timer.style.color = '#ffaa00'; // Orange
+        // Update timer display
+        if (this.round === 10) {
+            this.ui.timer.textContent = 'BOSS';
+            this.ui.timer.style.color = '#ff00ff';
         } else {
-            this.ui.timer.style.color = '#ff00ff'; // Purple (default)
+            const minutes = Math.floor(this.currentTime / 60);
+            const seconds = Math.floor(this.currentTime % 60);
+            this.ui.timer.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+            if (this.currentTime < 30) {
+                this.ui.timer.style.color = '#ff0000';
+            } else if (this.currentTime < 60) {
+                this.ui.timer.style.color = '#ffaa00';
+            } else {
+                this.ui.timer.style.color = '#ff00ff';
+            }
         }
 
         // Show/hide shield bar
@@ -1886,7 +2077,7 @@ class Game {
         } else {
             // Save without name and show game over directly
             this.saveHallOfFame({ score: this.score, round: this.round, won: false });
-            this.showGameOverScreen('GAME OVER', '#ff4444', `Round ${this.round}`);
+            this.showGameOverScreen('GAME OVER', '#ff4444', `Level ${this.round}`);
         }
     }
 
@@ -1949,16 +2140,29 @@ class Game {
 
         // Show appropriate game over screen
         if (entry.won) {
-            this.showGameOverScreen('VICTORY!', '#00ff00', `All ${this.maxRounds} Rounds Complete!`);
+            this.showGameOverScreen('VICTORY!', '#00ff00', `All ${this.maxRounds} Levels Complete!`);
         } else {
-            this.showGameOverScreen('GAME OVER', '#ff4444', `Round ${entry.round}`);
+            this.showGameOverScreen('GAME OVER', '#ff4444', `Level ${entry.round}`);
         }
     }
 
-    activateCheat(targetRound) {
+    async activateCheat(targetRound) {
+        // ken0 = boss level
+        if (targetRound === 0) targetRound = 10;
+
+        // Start a game first if not running
+        if (!this.isRunning || this.gameOver) {
+            await window.soundManager.initialize();
+            this.cleanup();
+            this.ui.gameOver.classList.add('hidden');
+            document.getElementById('hof-name-input').classList.add('hidden');
+            this.ui.startScreen.classList.add('hidden');
+            this.startGame();
+        }
+
         // Play powerup sound
         window.soundManager.playPowerUp();
-        this.showPowerUpMessage(`SKIP TO ROUND ${targetRound}!`);
+        this.showPowerUpMessage(targetRound === 10 ? 'BOSS FIGHT!' : `SKIP TO LEVEL ${targetRound}!`);
 
         // Max health
         this.player.health = this.player.maxHealth;
@@ -2031,15 +2235,29 @@ class Game {
             position.x = Math.max(this.bounds.minX + 10, Math.min(this.bounds.maxX - 10, position.x));
             position.y = Math.max(this.bounds.minY + 10, Math.min(this.bounds.maxY - 10, position.y));
 
-            const enemy = new EnemyShip(position, this.scene, this.player);
-            enemy.currentRound = this.round;
+            // Later in the round and higher levels → more missile ships
+            const elapsed = this.roundTime - this.currentTime;
+            const progress = Math.min(elapsed / this.roundTime, 1);
+            const missileChance = this.round >= 6 ? 0.15 + progress * 0.35 : 0;
 
-            // Use round config stats + modest health wave bonus only
-            enemy.maxSpeed = cfg.enemySpeed;
-            enemy.fireRate = cfg.enemyFireRate;
-            enemy.health = cfg.enemyHealth + (this.enemyWaveNumber * 10);
+            // Later waves get tougher: more health, faster fire, faster movement
+            const waveBonus = this.enemyWaveNumber;
+            const speedScale = 1 + progress * 0.2;
+            const fireScale = 1 - progress * 0.25;
 
-            this.enemies.push(enemy);
+            if (cfg.missileShips > 0 && Math.random() < missileChance) {
+                const ms = new MissileShip(position, this.scene, this.player);
+                ms.health = cfg.msHealth + (waveBonus * 15);
+                ms.fireRate = cfg.msFireRate * fireScale;
+                this.enemies.push(ms);
+            } else {
+                const enemy = new EnemyShip(position, this.scene, this.player);
+                enemy.currentRound = this.round;
+                enemy.maxSpeed = cfg.enemySpeed * speedScale;
+                enemy.fireRate = cfg.enemyFireRate * fireScale;
+                enemy.health = cfg.enemyHealth + (waveBonus * 15);
+                this.enemies.push(enemy);
+            }
         }
     }
 
@@ -2048,10 +2266,14 @@ class Game {
 
         requestAnimationFrame(() => this.animate());
 
-        const deltaTime = Math.min(0.016, this.clock ? this.clock.getDelta() : 0.016);
-        this.update(deltaTime);
+        try {
+            const deltaTime = Math.min(0.016, this.clock ? this.clock.getDelta() : 0.016);
+            this.update(deltaTime);
 
-        this.renderer.render(this.scene, this.camera);
+            this.renderer.render(this.scene, this.camera);
+        } catch (e) {
+            console.error('Game loop error:', e);
+        }
     }
 }
 

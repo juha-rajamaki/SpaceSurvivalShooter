@@ -13,6 +13,7 @@ class PowerUp {
             weapon: { color: 0xff0000, icon: '🔫', duration: 45 },
             speed: { color: 0xffff00, icon: '⚡', duration: 10 },
             score: { color: 0x00ff00, icon: '⭐', scoreValue: 150 },
+            bigscore: { color: 0x00ff44, icon: '⭐', scoreValue: 250 },
             ammo: { color: 0xffaa00, icon: '💥', ammoValue: 200 },
             bigammo: { color: 0xff6600, icon: '💥', ammoValue: 500 },
             health: { color: 0xff00ff, icon: '❤️' },
@@ -107,8 +108,47 @@ class PowerUp {
             this.mesh.add(this.glow);
 
             this.core = null;
+        } else if (type === 'weapon' || type === 'dualweapon') {
+            // Red weapon crate
+            const boxGeometry = new THREE.BoxGeometry(0.9, 0.9, 0.9);
+            const boxMaterial = new THREE.MeshPhongMaterial({
+                color: 0xcc1100,
+                emissive: 0x661100,
+                emissiveIntensity: 0.4,
+                shininess: 80,
+                specular: 0xff4444
+            });
+            this.mesh = new THREE.Mesh(boxGeometry, boxMaterial);
+            this.mesh.position.copy(position);
+
+            // Warning stripes
+            const stripeGeometry = new THREE.BoxGeometry(0.95, 0.18, 0.95);
+            const stripeMaterial = new THREE.MeshBasicMaterial({
+                color: 0xff2200,
+                transparent: true,
+                opacity: 0.9
+            });
+            this.stripe1 = new THREE.Mesh(stripeGeometry, stripeMaterial);
+            this.stripe1.position.y = 0.22;
+            this.mesh.add(this.stripe1);
+
+            this.stripe2 = new THREE.Mesh(stripeGeometry, stripeMaterial);
+            this.stripe2.position.y = -0.22;
+            this.mesh.add(this.stripe2);
+
+            // Red glow
+            const glowGeometry = new THREE.SphereGeometry(0.7, 16, 16);
+            const glowMaterial = new THREE.MeshBasicMaterial({
+                color: 0xff2200,
+                transparent: true,
+                opacity: 0.2
+            });
+            this.glow = new THREE.Mesh(glowGeometry, glowMaterial);
+            this.mesh.add(this.glow);
+
+            this.core = null;
         } else if (type === 'ammo') {
-            // Create metal ammo box
+            // Grey metal ammo box with orange stripes
             const boxGeometry = new THREE.BoxGeometry(0.8, 0.8, 0.8);
             const boxMaterial = new THREE.MeshPhongMaterial({
                 color: 0x888888,
@@ -120,7 +160,7 @@ class PowerUp {
             this.mesh = new THREE.Mesh(boxGeometry, boxMaterial);
             this.mesh.position.copy(position);
 
-            // Add warning stripes
+            // Orange warning stripes
             const stripeGeometry = new THREE.BoxGeometry(0.85, 0.2, 0.85);
             const stripeMaterial = new THREE.MeshBasicMaterial({
                 color: this.config.color,
@@ -135,7 +175,7 @@ class PowerUp {
             this.stripe2.position.y = -0.2;
             this.mesh.add(this.stripe2);
 
-            // Add glow for ammo
+            // Orange glow
             const glowGeometry = new THREE.SphereGeometry(0.6, 16, 16);
             const glowMaterial = new THREE.MeshBasicMaterial({
                 color: this.config.color,
@@ -145,7 +185,38 @@ class PowerUp {
             this.glow = new THREE.Mesh(glowGeometry, glowMaterial);
             this.mesh.add(this.glow);
 
-            this.core = null; // No core for ammo boxes
+            this.core = null;
+        } else if (type === 'bigscore') {
+            // Big score - larger bright green octahedron
+            this.radius = 1.1;
+            const geometry = new THREE.OctahedronGeometry(0.8, 0);
+            const material = new THREE.MeshPhongMaterial({
+                color: 0x00ff44,
+                emissive: 0x00ff44,
+                emissiveIntensity: 0.6,
+                transparent: true,
+                opacity: 0.9
+            });
+            this.mesh = new THREE.Mesh(geometry, material);
+            this.mesh.position.copy(position);
+
+            const glowGeometry = new THREE.SphereGeometry(1.2, 16, 16);
+            const glowMaterial = new THREE.MeshBasicMaterial({
+                color: 0x00ff44,
+                transparent: true,
+                opacity: 0.25
+            });
+            this.glow = new THREE.Mesh(glowGeometry, glowMaterial);
+            this.mesh.add(this.glow);
+
+            const coreGeometry = new THREE.SphereGeometry(0.45, 8, 8);
+            const coreMaterial = new THREE.MeshPhongMaterial({
+                color: 0xffffff,
+                emissive: 0xffffff,
+                emissiveIntensity: 0.6
+            });
+            this.core = new THREE.Mesh(coreGeometry, coreMaterial);
+            this.mesh.add(this.core);
         } else {
             // Standard powerup appearance
             const geometry = new THREE.OctahedronGeometry(0.5, 0);
@@ -182,6 +253,7 @@ class PowerUp {
 
         scene.add(this.mesh);
 
+        this.velocity = new THREE.Vector3(0, 0, 0);
         this.rotationSpeed = 2;
         this.bobSpeed = 2;
         this.bobAmount = 0.5;
@@ -192,12 +264,20 @@ class PowerUp {
     update(deltaTime) {
         this.time += deltaTime;
 
-        // Rotation - slower for ammo boxes
-        if (this.type === 'ammo' || this.type === 'bigammo') {
+        // Rotation - slower for crate-type powerups
+        if (this.type === 'ammo' || this.type === 'bigammo' || this.type === 'weapon' || this.type === 'dualweapon') {
             this.mesh.rotation.y += this.rotationSpeed * 0.3 * deltaTime;
         } else {
             this.mesh.rotation.y += this.rotationSpeed * deltaTime;
             this.mesh.rotation.x += this.rotationSpeed * 0.5 * deltaTime;
+        }
+
+        // Apply velocity (from black hole pull)
+        if (this.velocity.lengthSq() > 0.001) {
+            this.mesh.position.x += this.velocity.x * deltaTime;
+            this.mesh.position.z += this.velocity.z * deltaTime;
+            this.initialY += this.velocity.y * deltaTime;
+            this.velocity.multiplyScalar(0.98);
         }
 
         // Bobbing motion
@@ -207,8 +287,8 @@ class PowerUp {
         const pulse = Math.sin(this.time * 3) * 0.2 + 1;
         this.glow.scale.setScalar(pulse);
 
-        if (this.type === 'ammo' || this.type === 'bigammo') {
-            // Pulsing stripes for ammo boxes
+        if (this.type === 'ammo' || this.type === 'bigammo' || this.type === 'weapon' || this.type === 'dualweapon') {
+            // Pulsing stripes for crate-type powerups
             const stripePulse = Math.sin(this.time * 4) * 0.3 + 0.7;
             if (this.stripe1) this.stripe1.material.opacity = stripePulse;
             if (this.stripe2) this.stripe2.material.opacity = stripePulse;
@@ -273,6 +353,7 @@ class PowerUp {
                 };
 
             case 'score':
+            case 'bigscore':
                 // Instant score bonus - no duration needed
                 return {
                     message: `+${this.config.scoreValue} POINTS`,
@@ -291,10 +372,9 @@ class PowerUp {
                 };
 
             case 'health':
-                // Full health restore
-                player.health = player.maxHealth;
+                player.health = Math.min(player.health + 60, player.maxHealth);
                 return {
-                    message: 'FULL HEALTH RESTORED',
+                    message: 'HEALTH +60',
                     type: 'health'
                 };
 
@@ -412,8 +492,8 @@ class PowerUpManager {
             type = 'health';       // 10% chance
         } else if (random < 0.20) {
             type = 'weapon';       // 10% chance
-        } else if (random < 0.23) {
-            type = 'shield';       // 3% chance
+        } else if (random < (this.currentRound >= 5 ? 0.33 : 0.23)) {
+            type = 'shield';       // 13% after L5, 3% before
         } else if (random < 0.33) {
             type = 'speed';        // 10% chance
         } else if (random < 0.61125) {

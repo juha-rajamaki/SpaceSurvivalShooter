@@ -29,16 +29,18 @@ class Physics {
         entity.mesh.position.z += entity.velocity.z * deltaTime;
     }
 
-    applyGravitationalPull(entity, blackHole, strength = 100) {
+    applyGravitationalPull(entity, blackHole, strengthMultiplier = 1) {
         const distance = entity.mesh.position.distanceTo(blackHole.mesh.position);
+        const pullRadius = blackHole.pullRadius || blackHole.radius * 3;
+        const strength = (blackHole.strength || 100) * strengthMultiplier;
 
-        if (distance < blackHole.radius * 3) {
+        if (distance < pullRadius && distance > 0.1) {
             const direction = new THREE.Vector3()
                 .subVectors(blackHole.mesh.position, entity.mesh.position)
                 .normalize();
 
             const force = strength / (distance * distance);
-            const maxForce = 10;
+            const maxForce = 25;
             const clampedForce = Math.min(force, maxForce);
 
             entity.velocity.add(direction.multiplyScalar(clampedForce * 0.016));

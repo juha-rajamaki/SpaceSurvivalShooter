@@ -277,6 +277,24 @@ class ParticleSystem {
         }
     }
 
+    createRockDust(position, color = new THREE.Color(0.6, 0.4, 0.2), particleCount = 20) {
+        for (let i = 0; i < particleCount; i++) {
+            const velocity = new THREE.Vector3(
+                (Math.random() - 0.5) * 20,
+                (Math.random() - 0.5) * 20,
+                (Math.random() - 0.5) * 8
+            );
+            const size = Math.random() * 0.12 + 0.04;
+            const lifetime = Math.random() * 0.2 + 0.1;
+
+            const particleColor = color.clone();
+            particleColor.r += (Math.random() - 0.5) * 0.15;
+            particleColor.g += (Math.random() - 0.5) * 0.1;
+
+            this.emit(position, velocity, particleColor, size, lifetime);
+        }
+    }
+
     createEngineTrail(position, direction, isBoost = false) {
         const count = isBoost ? 5 : 2;
         const baseColor = isBoost ?

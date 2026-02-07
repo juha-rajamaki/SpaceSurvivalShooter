@@ -404,9 +404,9 @@ class PlayerShuttle {
     }
 
     takeDamage(amount) {
-        // Shields reduce damage by 70% instead of blocking completely
+        // Shields reduce damage to minimal
         if (this.shields) {
-            amount *= 0.3; // Only 30% damage gets through
+            amount *= 0.1; // Only 10% damage gets through
         }
 
         this.health -= amount;
@@ -543,8 +543,8 @@ class Asteroid {
     break() {
         const fragments = [];
         if (this.size === 'huge') {
-            // Create 3-4 large asteroids
-            const count = Math.floor(Math.random() * 2) + 3;
+            // Create 5-6 large asteroids
+            const count = Math.floor(Math.random() * 2) + 5;
             for (let i = 0; i < count; i++) {
                 const angle = (Math.PI * 2 * i) / count;
                 const offset = new THREE.Vector3(
@@ -783,6 +783,8 @@ class EnemyDebris {
         scene.add(this.mesh);
 
         this.velocity = new THREE.Vector3();
+        this.radius = 0.3;
+        this.damage = 5;
         this.rotationSpeed = new THREE.Vector3(
             (Math.random() - 0.5) * 8,
             (Math.random() - 0.5) * 8,
@@ -1335,7 +1337,7 @@ class Matriarch {
             this.shieldMesh.material.opacity = 0.25 + Math.sin(this.time * 6) * 0.1;
             this.shieldMesh.rotation.y += deltaTime * 2;
             // Slow health regen while shielded
-            this.health = Math.min(this.health + 10 * deltaTime, this.maxHealth);
+            this.health = Math.min(this.health + 3 * deltaTime, this.maxHealth);
         } else {
             // Shield is down - core pulses brightly to signal vulnerability
             this.shieldMesh.material.opacity = 0;
@@ -1462,6 +1464,7 @@ class Matriarch {
             this.scene
         );
         laser.mesh.material.color.setHex(0xff00ff);
+        laser.isBossLaser = true;
         laser.damage = this.damage;
         laser.speed = 60;
         laser.velocity = dir.multiplyScalar(60);
@@ -1517,7 +1520,8 @@ class Matriarch {
                 return false; // Missed the weak spot
             }
         }
-        this.health -= damage;
+        // Boss armor — takes half damage
+        this.health -= damage * 0.5;
         return this.health <= 0;
     }
 
@@ -1568,7 +1572,7 @@ class SpaceMine {
         this.damage = 25;
         this.triggerRadius = 5;
         this.triggered = false;
-        this.countdown = 1.5;
+        this.countdown = 0.75;
 
         // Create mine
         const geometry = new THREE.SphereGeometry(0.5, 8, 8);
@@ -1612,7 +1616,7 @@ class SpaceMine {
             // Blink faster as countdown approaches
             const blinkSpeed = Math.max(0.1, this.countdown);
             this.warningLight.intensity = Math.sin(Date.now() * 0.01 / blinkSpeed) * 2;
-            this.mesh.material.emissiveIntensity = 0.2 + (1 - this.countdown / 1.5) * 0.8;
+            this.mesh.material.emissiveIntensity = 0.2 + (1 - this.countdown / 0.75) * 0.8;
 
             if (this.countdown <= 0) {
                 return true; // Explode
@@ -1634,8 +1638,8 @@ class BlackHole {
     constructor(position, scene) {
         this.scene = scene;
         this.radius = 5;
-        this.pullRadius = 30;
-        this.strength = 200;
+        this.pullRadius = 2400;
+        this.strength = 3200;
 
         // Create black hole
         const geometry = new THREE.SphereGeometry(this.radius, 32, 32);

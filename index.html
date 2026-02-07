@@ -43,13 +43,14 @@
                     <span id="score">0</span>
                 </div>
                 <div class="stat-item">
-                    <span class="label">Round:</span>
+                    <span class="label">Level:</span>
                     <span id="round">1/10</span>
                 </div>
             </div>
 
             <!-- Round Timer (top center) -->
             <div id="timer-container">
+                <span id="timer-level">L1</span>
                 <span id="timer">3:00</span>
             </div>
 
@@ -106,7 +107,7 @@
         <div id="game-over" class="hidden">
             <h1>GAME OVER</h1>
             <p>Final Score: <span id="final-score">0</span></p>
-            <p>Rounds Completed: <span id="final-wave">0</span></p>
+            <p>Levels Completed: <span id="final-wave">0</span></p>
             <button id="restart-btn">Play Again</button>
         </div>
 
@@ -145,6 +146,13 @@
                         <input type="range" id="volume-slider" min="0" max="100" value="50" title="Master Volume">
                     </div>
                 </div>
+                <div class="settings-group" id="settings-controls">
+                    <h3>Controls</h3>
+                    <div class="settings-row"><span class="settings-label">Move</span><span class="settings-keys"><kbd>↑↓←→</kbd> / <kbd>WASD</kbd></span></div>
+                    <div class="settings-row"><span class="settings-label">Fire</span><span class="settings-keys"><kbd>Space</kbd></span></div>
+                    <div class="settings-row"><span class="settings-label">Shield</span><span class="settings-keys"><kbd>Shift</kbd> (hold)</span></div>
+                    <div class="settings-row"><span class="settings-label">Missiles</span><span class="settings-keys"><kbd>Ctrl</kbd> (from L6)</span></div>
+                </div>
                 <button id="settings-close-btn">Close</button>
             </div>
         </div>
@@ -171,71 +179,71 @@
                         <h3>Collectibles</h3>
                         <div class="items-grid">
                             <div class="item-entry">
-                                <span class="item-icon icon-shield">🛡️</span>
+                                <span class="item-icon icon-shield"><span class="shape-diamond" style="background:#00aaff;"></span></span>
                                 <span class="item-label">Shield</span>
                             </div>
                             <div class="item-entry">
-                                <span class="item-icon icon-weapon">🔫</span>
+                                <span class="item-icon icon-weapon"><span class="shape-crate" style="background:#cc1100;"><span class="crate-stripe" style="background:#ff2200;"></span><span class="crate-stripe" style="background:#ff2200;"></span></span></span>
                                 <span class="item-label">Triple Shot</span>
                             </div>
                             <div class="item-entry">
-                                <span class="item-icon icon-speed">⚡</span>
+                                <span class="item-icon icon-speed"><span class="shape-diamond" style="background:#ffff00;"></span></span>
                                 <span class="item-label">Speed Boost</span>
                             </div>
                             <div class="item-entry">
-                                <span class="item-icon icon-score">⭐</span>
+                                <span class="item-icon icon-score"><span class="shape-diamond" style="background:#00ff00;"></span></span>
                                 <span class="item-label">Score</span>
                             </div>
                             <div class="item-entry">
-                                <span class="item-icon icon-ammo">💥</span>
+                                <span class="item-icon icon-ammo"><span class="shape-crate" style="background:#888;"><span class="crate-stripe" style="background:#ffaa00;"></span><span class="crate-stripe" style="background:#ffaa00;"></span></span></span>
                                 <span class="item-label">Ammo</span>
                             </div>
                             <div class="item-entry">
-                                <span class="item-icon icon-ammo">💥💥</span>
+                                <span class="item-icon icon-ammo"><span class="shape-crate shape-crate-big" style="background:#666;"><span class="crate-stripe" style="background:#ff6600;"></span><span class="crate-stripe" style="background:#ff6600;"></span><span class="crate-stripe" style="background:#ff6600;"></span></span></span>
                                 <span class="item-label">Big Ammo</span>
                             </div>
                             <div class="item-entry">
-                                <span class="item-icon icon-health">❤️</span>
+                                <span class="item-icon icon-health"><span class="shape-crate" style="background:#fff;"><span class="health-cross-h"></span><span class="health-cross-v"></span></span></span>
                                 <span class="item-label">Health (rare)</span>
                             </div>
                             <div class="item-entry">
-                                <span class="item-icon icon-dualweapon">🔥</span>
-                                <span class="item-label">6/8-Shot <small>(R5+)</small></span>
+                                <span class="item-icon icon-dualweapon"><span class="shape-diamond" style="background:#ff4400;"></span></span>
+                                <span class="item-label">6/8-Shot <small>(L5+)</small></span>
                             </div>
                             <div class="item-entry">
-                                <span class="item-icon icon-missile">🚀</span>
-                                <span class="item-label">Missiles <small>(R6+)</small></span>
+                                <span class="item-icon icon-missile"><span class="shape-diamond" style="background:#ff2200;"></span></span>
+                                <span class="item-label">Missiles <small>(L6+)</small></span>
                             </div>
                         </div>
                         <h3>Hazards</h3>
                         <div class="items-grid">
                             <div class="item-entry">
-                                <span class="item-icon icon-asteroid">☄️</span>
+                                <span class="item-icon icon-asteroid"><span class="shape-rock"></span></span>
                                 <span class="item-label">Asteroid</span>
                             </div>
                             <div class="item-entry">
-                                <span class="item-icon icon-enemy">👾</span>
+                                <span class="item-icon icon-enemy"><span class="shape-enemy"></span></span>
                                 <span class="item-label">Enemy Ship</span>
                             </div>
                             <div class="item-entry">
-                                <span class="item-icon icon-asteroid">☄️</span>
-                                <span class="item-label">Huge Asteroid <small>(R5+)</small></span>
+                                <span class="item-icon icon-asteroid"><span class="shape-rock shape-rock-huge"></span></span>
+                                <span class="item-label">Huge Asteroid <small>(L3+)</small></span>
                             </div>
                             <div class="item-entry">
-                                <span class="item-icon icon-mine">💣</span>
-                                <span class="item-label">Mine <small>(R4+)</small></span>
+                                <span class="item-icon icon-mine"><span class="shape-mine"></span></span>
+                                <span class="item-label">Mine <small>(L4+)</small></span>
                             </div>
                             <div class="item-entry">
-                                <span class="item-icon icon-enemy">🚀</span>
-                                <span class="item-label">Missile Ship <small>(R6+)</small></span>
+                                <span class="item-icon icon-enemy"><span class="shape-missile-ship"></span></span>
+                                <span class="item-label">Missile Ship <small>(L6+)</small></span>
                             </div>
                             <div class="item-entry">
-                                <span class="item-icon icon-blackhole">🕳️</span>
-                                <span class="item-label">Black Hole <small>(R7+)</small></span>
+                                <span class="item-icon icon-blackhole"><span class="shape-blackhole"></span></span>
+                                <span class="item-label">Black Hole <small>(L7+)</small></span>
                             </div>
                             <div class="item-entry">
-                                <span class="item-icon icon-matriarch">👑</span>
-                                <span class="item-label">Matriarch <small>(R10)</small></span>
+                                <span class="item-icon icon-matriarch"><span class="shape-matriarch"></span></span>
+                                <span class="item-label">Matriarch <small>(L10)</small></span>
                             </div>
                         </div>
                     </div>
